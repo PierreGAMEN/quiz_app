@@ -1,19 +1,15 @@
 <template>
     <div class="game-room">
 
-        <!-- LOBBY : en attente de démarrage -->
+        <!-- LOBBY -->
         <div v-if="gameStore.status === 'waiting'" class="lobby">
             <h1>🎯 Room <span class="code">{{ route.params.code }}</span></h1>
-
             <div class="players-list">
                 <h2>Joueurs connectés ({{ gameStore.players.length }})</h2>
                 <ul>
-                    <li v-for="player in gameStore.players" :key="player.id">
-                        👤 {{ player.name }}
-                    </li>
+                    <li v-for="player in gameStore.players" :key="player.id">👤 {{ player.name }}</li>
                 </ul>
             </div>
-
             <div v-if="isAdmin" class="admin-actions">
                 <button :disabled="gameStore.players.length === 0" @click="startGame">
                     ▶️ Lancer le quiz
@@ -47,15 +43,15 @@
             <!-- Question courante -->
             <div v-else class="question-card">
                 <div class="question-meta">
-                    <span class="tag">{{ gameStore.currentPhase?.type }}</span>
-                    <span class="points">{{ gameStore.currentQuestion.points }} pt(s)</span>
+                    <span class="tag">{{ gameStore.currentPhase?.type === 'buzz' ? '🔔 Buzz' : '📝 QCM' }}</span>
+                    <span class="points-badge">{{ gameStore.currentQuestion.points }} pt(s)</span>
                     <span v-if="gameStore.currentQuestion.time_limit" class="timer">
                         ⏱ {{ gameStore.currentQuestion.time_limit }}s
                     </span>
                 </div>
                 <h2>{{ gameStore.currentQuestion.text }}</h2>
 
-                <!-- Buzz -->
+                <!-- BUZZ -->
                 <div v-if="gameStore.currentPhase?.type === 'buzz'" class="buzz-zone">
                     <div v-if="gameStore.buzzedPlayer" class="buzzed">
                         🔔 <strong>{{ gameStore.buzzedPlayer.name }}</strong> a buzzé !
@@ -75,56 +71,41 @@
                     <p v-else class="waiting-buzz">En attente d'un buzz...</p>
                 </div>
 
-                <!-- All answer -->
-                <div v-else-if="gameStore.currentPhase?.type === 'all_answer'" class="written-zone">
+                <!-- QCM (all_answer) -->
+                <div v-else-if="gameStore.currentPhase?.type === 'all_answer'" class="qcm-zone">
 
-                    <!-- QCM si has_options -->
-                    <template v-if="gameStore.currentQuestion.has_options">
-                        <div v-if="!isAdmin" class="options">
-                            <button
-                                v-for="option in gameStore.currentQuestion.options"
-                                :key="option.id"
-                                class="option-btn"
-                                :class="{ selected: selectedAnswer === option.text }"
-                                :disabled="hasAnswered"
-                                @click="selectOption(option.text)"
-                            >
-                                {{ option.text }}
-                            </button>
+                    <!-- Vue joueur : résultat après révélation -->
+                    <div v-if="!isAdmin && gameStore.answerResult !== null" class="answer-result">
+                        <div v-if="gameStore.answerResult.isCorrect" class="result-correct">
+                            ✅ Bonne réponse ! +{{ gameStore.answerResult.points }} pts
                         </div>
-                    </template>
+                        <div v-else class="result-wrong">
+                            ❌ Mauvaise réponse
+                        </div>
+                    </div>
 
-                    <!-- Réponse libre -->
-                    <template v-else>
-                        <div v-if="!isAdmin">
-                            <input
-                                v-model="writtenAnswer"
-                                placeholder="Ta réponse..."
-                                :disabled="hasAnswered"
-                                @keyup.enter="submitAnswer"
-                            />
-                            <button :disabled="!writtenAnswer || hasAnswered" @click="submitAnswer">
-                                {{ hasAnswered ? 'Réponse envoyée ✓' : 'Envoyer' }}
-                            </button>
-                        </div>
-                    </template>
+                    <!-- Vue joueur : options à choisir -->
+                    <div v-else-if="!isAdmin" class="options">
+                        <button v-for="option in gameStore.currentQuestion.options" :key="option.id" class="option-btn"
+                            :class="{ selected: selectedAnswer === option.text }" :disabled="hasAnswered"
+                            @click="selectOption(option.text)">
+                            {{ option.text }}
+                        </button>
+                        <p v-if="hasAnswered" class="answered-msg">Réponse envoyée, en attente des autres joueurs...</p>
+                    </div>
 
                     <!-- Vue admin -->
                     <div v-if="isAdmin" class="answers-list">
                         <h3>Réponses reçues ({{ gameStore.answers.length }}/{{ gameStore.players.length }})</h3>
                         <div v-for="ans in gameStore.answers" :key="ans.playerId" class="answer-row">
                             <span>{{ getPlayerName(ans.playerId) }} : <strong>{{ ans.answer }}</strong></span>
-                            <div class="award-inline">
-                                <button class="small"
-                                    @click="awardPointsTo(ans.playerId, gameStore.currentQuestion.points)">
-                                    ✅ +{{ gameStore.currentQuestion.points }}
-                                </button>
-                                <button class="small danger" @click="awardPointsTo(ans.playerId, 0)">❌</button>
-                            </div>
                         </div>
-                        <p v-if="gameStore.answers.length === 0" style="color: #6b7280; text-align: center;">
+                        <p v-if="gameStore.answers.length === 0" class="waiting-text">
                             En attente des réponses...
                         </p>
+                        <button :disabled="gameStore.answers.length === 0" class="reveal-btn" @click="revealResults">
+                            🎯 Révéler les résultats
+                        </button>
                     </div>
                 </div>
             </div>
@@ -148,7 +129,6 @@
                 </button>
                 <button class="danger" @click="endGame">🏁 Terminer le quiz</button>
             </div>
-
         </div>
 
         <!-- FIN DE PARTIE -->
@@ -181,7 +161,6 @@ const gameStore = useGameStore()
 const isAdmin = computed(() => route.query.admin === 'true')
 const roomCode = computed(() => route.params.code as string)
 
-// Navigation admin
 const selectedPhaseId = ref<number | null>(null)
 const selectedQuestionId = ref<number | null>(null)
 const currentPhaseQuestions = computed(() => {
@@ -190,14 +169,11 @@ const currentPhaseQuestions = computed(() => {
     return phase?.questions || []
 })
 
-// Réponses joueur
-const writtenAnswer = ref('')
 const selectedAnswer = ref('')
 const hasAnswered = ref(false)
 
 onMounted(async () => {
     gameStore.status = 'waiting'
-
     if (!gameStore.room) {
         try {
             const res = await api.get(`/room/${roomCode.value}`)
@@ -209,7 +185,6 @@ onMounted(async () => {
             return
         }
     }
-
     gameStore.connectSocket(roomCode.value)
 })
 
@@ -218,9 +193,12 @@ onUnmounted(() => {
 })
 
 watch(() => gameStore.buzzedPlayer, (val) => {
-    if (val === null) {
-        hasAnswered.value = false
-    }
+    if (val === null) hasAnswered.value = false
+})
+
+watch(() => gameStore.currentQuestion, () => {
+    hasAnswered.value = false
+    selectedAnswer.value = ''
 })
 
 function startGame() {
@@ -230,9 +208,6 @@ function startGame() {
 function nextQuestion() {
     if (!selectedPhaseId.value || !selectedQuestionId.value) return
     gameStore.nextQuestion(roomCode.value, selectedPhaseId.value, selectedQuestionId.value)
-    hasAnswered.value = false
-    writtenAnswer.value = ''
-    selectedAnswer.value = ''
 }
 
 function buzz() {
@@ -240,16 +215,12 @@ function buzz() {
     gameStore.buzz(roomCode.value, gameStore.player.id)
 }
 
-function submitAnswer() {
-    if (!writtenAnswer.value || !gameStore.player || !gameStore.currentQuestion) return
-    gameStore.sendAnswer(roomCode.value, gameStore.player.id, gameStore.currentQuestion.id, writtenAnswer.value)
-    hasAnswered.value = true
-}
-
 function selectOption(text: string) {
+    if (hasAnswered.value) return
     selectedAnswer.value = text
-    writtenAnswer.value = text
-    submitAnswer()
+    hasAnswered.value = true
+    if (!gameStore.player || !gameStore.currentQuestion) return
+    gameStore.sendAnswer(roomCode.value, gameStore.player.id, gameStore.currentQuestion.id, text)
 }
 
 function awardPoints(points: number) {
@@ -267,9 +238,9 @@ function awardPointsAndReset(points: number) {
     gameStore.resetBuzz(roomCode.value)
 }
 
-function awardPointsTo(playerId: number, points: number) {
+function revealResults() {
     if (!gameStore.currentQuestion) return
-    gameStore.awardPoints(roomCode.value, playerId, gameStore.currentQuestion.id, points)
+    gameStore.revealResults(roomCode.value, gameStore.currentQuestion.id)
 }
 
 function endGame() {
@@ -334,9 +305,16 @@ function getPlayerName(playerId: number) {
     margin-bottom: 20px;
 }
 
-.phase-title { font-weight: bold; font-size: 16px; }
+.phase-title {
+    font-weight: bold;
+    font-size: 16px;
+}
 
-.scores { display: flex; gap: 12px; flex-wrap: wrap; }
+.scores {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
 
 .score-chip {
     background: rgba(255, 255, 255, 0.2);
@@ -368,7 +346,8 @@ function getPlayerName(playerId: number) {
     font-size: 12px;
 }
 
-.points, .timer {
+.points-badge,
+.timer {
     font-size: 13px;
     color: #6b7280;
     padding: 2px 8px;
@@ -376,9 +355,16 @@ function getPlayerName(playerId: number) {
     border-radius: 99px;
 }
 
-.question-card h2 { font-size: 22px; margin: 0 0 20px; }
+.question-card h2 {
+    font-size: 22px;
+    margin: 0 0 20px;
+}
 
-.options { display: flex; flex-direction: column; gap: 10px; }
+.options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
 
 .option-btn {
     padding: 12px 16px;
@@ -392,9 +378,27 @@ function getPlayerName(playerId: number) {
     transition: all 0.15s;
 }
 
-.option-btn:hover:not(:disabled) { border-color: #4f46e5; background: #eef2ff; }
-.option-btn.selected { border-color: #4f46e5; background: #e0e7ff; }
-.option-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.option-btn:hover:not(:disabled) {
+    border-color: #4f46e5;
+    background: #eef2ff;
+}
+
+.option-btn.selected {
+    border-color: #4f46e5;
+    background: #e0e7ff;
+}
+
+.option-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.answered-msg {
+    text-align: center;
+    color: #6b7280;
+    font-size: 13px;
+    margin-top: 12px;
+}
 
 .buzz-btn {
     width: 200px;
@@ -412,7 +416,9 @@ function getPlayerName(playerId: number) {
     transition: transform 0.1s;
 }
 
-.buzz-btn:active { transform: scale(0.95); }
+.buzz-btn:active {
+    transform: scale(0.95);
+}
 
 .buzzed {
     text-align: center;
@@ -427,17 +433,11 @@ function getPlayerName(playerId: number) {
     margin-top: 16px;
 }
 
-.written-zone input {
-    width: 100%;
-    padding: 12px;
-    font-size: 16px;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    margin-bottom: 10px;
-    box-sizing: border-box;
+.answers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
-
-.answers-list { display: flex; flex-direction: column; gap: 10px; }
 
 .answer-row {
     display: flex;
@@ -448,7 +448,48 @@ function getPlayerName(playerId: number) {
     border-radius: 6px;
 }
 
-.award-inline { display: flex; gap: 6px; }
+.waiting-text {
+    color: #6b7280;
+    text-align: center;
+    margin: 0;
+}
+
+.reveal-btn {
+    margin-top: 12px;
+    width: 100%;
+    padding: 12px;
+    font-size: 15px;
+}
+
+.answer-result {
+    text-align: center;
+    padding: 30px;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+.result-correct {
+    background: #f0fdf4;
+    color: #16a34a;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.result-wrong {
+    background: #fef2f2;
+    color: #ef4444;
+    padding: 20px;
+    border-radius: 8px;
+}
+
+.resolved {
+    text-align: center;
+    font-size: 20px;
+    color: #16a34a;
+    padding: 20px;
+    background: #f0fdf4;
+    border-radius: 8px;
+}
 
 .admin-nav {
     max-width: 700px;
@@ -496,17 +537,21 @@ select {
     padding: 14px 20px;
 }
 
-.rank { font-size: 20px; font-weight: bold; color: #4f46e5; width: 30px; }
-.player-name { flex: 1; font-size: 16px; }
-.player-score { font-weight: bold; color: #16a34a; }
-
-.resolved {
-    text-align: center;
+.rank {
     font-size: 20px;
+    font-weight: bold;
+    color: #4f46e5;
+    width: 30px;
+}
+
+.player-name {
+    flex: 1;
+    font-size: 16px;
+}
+
+.player-score {
+    font-weight: bold;
     color: #16a34a;
-    padding: 20px;
-    background: #f0fdf4;
-    border-radius: 8px;
 }
 
 button {
@@ -519,11 +564,28 @@ button {
     font-size: 14px;
 }
 
-button:disabled { opacity: 0.4; cursor: not-allowed; }
-button.danger { background: #ef4444; }
-button.secondary { background: white; color: #4f46e5; border: 1px solid #4f46e5; }
-button.small { font-size: 12px; padding: 5px 10px; }
+button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
 
-.waiting-message p, .waiting-buzz { color: #6b7280; text-align: center; }
-.admin-actions, .waiting-message { margin-top: 20px; }
+button.danger {
+    background: #ef4444;
+}
+
+button.small {
+    font-size: 12px;
+    padding: 5px 10px;
+}
+
+.waiting-message p,
+.waiting-buzz {
+    color: #6b7280;
+    text-align: center;
+}
+
+.admin-actions,
+.waiting-message {
+    margin-top: 20px;
+}
 </style>

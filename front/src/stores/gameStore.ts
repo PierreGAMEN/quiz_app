@@ -14,6 +14,8 @@ export const useGameStore = defineStore("game", {
     answers: [] as any[],
     status: "idle" as "idle" | "waiting" | "in_progress" | "finished",
     questionResolved: false as boolean,
+    answerResult: null as { isCorrect: boolean; points: number } | null,
+    resultsRevealed: false as boolean,
   }),
 
   actions: {
@@ -21,10 +23,6 @@ export const useGameStore = defineStore("game", {
       const res = await api.post("/room", { quiz_id });
       this.room = res.data;
       return res.data;
-    },
-
-    resolveQuestion(roomCode: string) {
-      socket.emit("game:question_resolved", { roomCode });
     },
 
     async joinRoom(code: string, name: string) {
@@ -36,6 +34,18 @@ export const useGameStore = defineStore("game", {
 
     connectSocket(roomCode: string) {
       socket.connect();
+
+      socket.off("room:players_updated");
+      socket.off("game:started");
+      socket.off("game:question");
+      socket.off("game:buzzed");
+      socket.off("game:buzz_reset");
+      socket.off("game:question_resolved");
+      socket.off("game:answer_received");
+      socket.off("game:all_answered");
+      socket.off("game:finished");
+      socket.off("game:answer_result");
+      socket.off("game:results_revealed");
 
       socket.emit("room:join", {
         roomCode,
@@ -52,11 +62,9 @@ export const useGameStore = defineStore("game", {
         this.currentPhase = null;
         this.currentQuestion = null;
 
-        // Trouve la première phase qui a des questions
         for (const phase of phases) {
           if (phase.questions && phase.questions.length > 0) {
             this.currentPhase = phase;
-            this.currentQuestion = null; // l'admin choisit manuellement
             break;
           }
         }
@@ -69,9 +77,12 @@ export const useGameStore = defineStore("game", {
           this.currentQuestion = phase.questions.find(
             (q: any) => q.id === questionId,
           );
+          console.log("question chargée:", this.currentQuestion);
           this.buzzedPlayer = null;
           this.answers = [];
-          this.questionResolved = false; // reset
+          this.questionResolved = false;
+          this.answerResult = null;
+          this.resultsRevealed = false;
         }
       });
 
@@ -93,8 +104,15 @@ export const useGameStore = defineStore("game", {
       });
 
       socket.on("game:all_answered", () => {
-        // Tous les joueurs ont répondu
         console.log("Tout le monde a répondu");
+      });
+
+      socket.on("game:answer_result", ({ isCorrect, points }: any) => {
+        this.answerResult = { isCorrect, points };
+      });
+
+      socket.on("game:results_revealed", () => {
+        this.resultsRevealed = true;
       });
 
       socket.on("game:finished", ({ leaderboard }: any) => {
@@ -107,7 +125,6 @@ export const useGameStore = defineStore("game", {
       socket.disconnect();
     },
 
-    // Actions WebSocket
     startGame(roomCode: string) {
       socket.emit("game:start", { roomCode });
     },
@@ -122,6 +139,10 @@ export const useGameStore = defineStore("game", {
 
     resetBuzz(roomCode: string) {
       socket.emit("game:buzz_reset", { roomCode });
+    },
+
+    resolveQuestion(roomCode: string) {
+      socket.emit("game:question_resolved", { roomCode });
     },
 
     sendAnswer(
@@ -145,6 +166,11 @@ export const useGameStore = defineStore("game", {
         questionId,
         points,
       });
+    },
+
+    revealResults(roomCode: string, questionId: number) {
+      socket.emit("game:reveal_results", { roomCode, questionId });
+      console.log("socket Emit")
     },
 
     endGame(roomCode: string) {

@@ -18,15 +18,14 @@ exports.getByPhase = async (req, res) => {
 
 exports.create = async (req, res) => {
   try {
-    const { phase_id, text, points, order, time_limit, options, has_options } = req.body;
+    const { phase_id, text, points, order, time_limit, options } = req.body;
     
     const result = await db.query(
-  'INSERT INTO question (phase_id, text, points, "order", time_limit, has_options) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-  [phase_id, text, points ?? 1, order, time_limit ?? null, has_options ?? false]
-);
+      'INSERT INTO question (phase_id, text, points, "order", time_limit) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [phase_id, text, points ?? 1, order, time_limit ?? null]
+    );
     const question = result.rows[0];
 
-    // Si des options QCM sont fournies
     if (options && options.length > 0) {
       for (let option of options) {
         await db.query(

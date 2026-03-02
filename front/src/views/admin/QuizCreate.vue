@@ -23,13 +23,14 @@
         <template v-else>
             <div class="quiz-header">
                 <h2>{{ quiz.title }}</h2>
-                <button @click="router.push(`/admin/quiz/${quiz.id}/edit`)">✏️ Continuer l'édition</button>
             </div>
 
             <!-- Phases existantes -->
             <div v-for="(phase, pIndex) in phases" :key="phase.id" class="card phase">
                 <div class="phase-header">
-                    <h3>Phase {{ pIndex + 1 }} — {{ phase.title }} <span class="tag">{{ phase.type }}</span></h3>
+                    <h3>Phase {{ pIndex + 1 }} — {{ phase.title }}
+                        <span class="tag">{{ phase.type === 'buzz' ? '🔔 Buzz' : '📝 QCM' }}</span>
+                    </h3>
                     <button class="danger small" @click="deletePhase(phase.id)">🗑️</button>
                 </div>
 
@@ -39,7 +40,7 @@
                     <span class="points">{{ question.points }} pt(s)</span>
                 </div>
 
-                <!-- Ajouter une question -->
+                <!-- Formulaire ajout question -->
                 <div class="add-question" v-if="activePhaseId === phase.id">
                     <div class="field">
                         <label>Question</label>
@@ -57,36 +58,35 @@
                         </div>
                     </div>
 
-                    <!-- Options QCM si all_answer -->
-                    <div v-if="phase.type === 'all_answer'" class="field">
-                        <label class="checkbox-label">
-                            <input type="checkbox" v-model="questionForm.has_options" />
-                            Proposer des options (QCM)
-                        </label>
-                        <div v-if="questionForm.has_options" class="options-list">
-                            <div v-for="(opt, i) in questionForm.options" :key="i" class="option-row">
-                                <input v-model="opt.text" :placeholder="`Option ${i + 1}`" />
-                                <label class="checkbox-label">
-                                    <input type="checkbox" v-model="opt.is_correct" /> Correcte
-                                </label>
-                                <button class="small danger" @click="questionForm.options.splice(i, 1)">✕</button>
-                            </div>
-                            <button class="small" @click="questionForm.options.push({ text: '', is_correct: false })">
-                                + Option
-                            </button>
+                    <!-- Options QCM uniquement pour all_answer -->
+                    <div v-if="phase.type === 'all_answer'" class="options-section">
+                        <label>Options <span class="hint">(une seule bonne réponse)</span></label>
+                        <div v-for="(opt, i) in questionForm.options" :key="i" class="option-row">
+                            <input v-model="opt.text" :placeholder="`Option ${i + 1}`" />
+                            <label class="radio-label">
+                                <input type="radio" :name="`correct-${phase.id}`" :value="i"
+                                    v-model="questionForm.correctIndex" />
+                                Correcte
+                            </label>
+                            <button class="small danger" @click="questionForm.options.splice(i, 1)">✕</button>
                         </div>
+                        <button class="small" @click="questionForm.options.push({ text: '', is_correct: false })">
+                            + Option
+                        </button>
                     </div>
 
                     <div class="actions">
                         <button @click="activePhaseId = null">Annuler</button>
-                        <button :disabled="!questionForm.text" @click="addQuestion(phase)">Ajouter la question</button>
+                        <button :disabled="!canAddQuestion(phase)" @click="addQuestion(phase)">
+                            Ajouter la question
+                        </button>
                     </div>
                 </div>
 
                 <button v-else class="small" @click="openAddQuestion(phase.id)">+ Ajouter une question</button>
             </div>
 
-            <!-- Ajouter une phase -->
+            <!-- Formulaire ajout phase -->
             <div class="card" v-if="showPhaseForm">
                 <h3>Nouvelle phase</h3>
                 <div class="field">
@@ -96,8 +96,8 @@
                 <div class="field">
                     <label>Type</label>
                     <select v-model="phaseForm.type">
-                        <option value="buzz">Buzz (réponse orale)</option>
-                        <option value="all_answer">Tout le monde répond</option>
+                        <option value="buzz">🔔 Buzz (réponse orale)</option>
+                        <option value="all_answer">📝 QCM (tout le monde répond)</option>
                     </select>
                 </div>
                 <div class="actions">
@@ -122,22 +122,28 @@ const quizStore = useQuizStore()
 const quiz = ref<any>(null)
 const phases = ref<any[]>([])
 
-// Formulaire quiz
 const form = ref({ title: '', description: '' })
-
-// Formulaire phase
 const showPhaseForm = ref(false)
 const phaseForm = ref({ title: '', type: 'buzz' })
 
-// Formulaire question
 const activePhaseId = ref<number | null>(null)
 const questionForm = ref({
     text: '',
     points: 1,
     time_limit: null as number | null,
-    has_options: false,
+    correctIndex: null as number | null,
     options: [] as any[]
 })
+
+function canAddQuestion(phase: any): boolean {
+    if (!questionForm.value.text) return false
+    if (phase.type === 'all_answer') {
+        return questionForm.value.options.length >= 2
+            && questionForm.value.correctIndex !== null
+            && questionForm.value.options.every((o: any) => o.text.trim() !== '')
+    }
+    return true
+}
 
 async function createQuiz() {
     quiz.value = await quizStore.create(form.value.title, form.value.description)
@@ -160,17 +166,22 @@ async function deletePhase(id: number) {
 
 function openAddQuestion(phaseId: number) {
     activePhaseId.value = phaseId
-    questionForm.value = { text: '', points: 1, time_limit: null, has_options: false, options: [] }
+    questionForm.value = { text: '', points: 1, time_limit: null, correctIndex: null, options: [] }
 }
 
 async function addQuestion(phase: any) {
+    // Applique is_correct sur les options selon l'index sélectionné
+    const options = questionForm.value.options.map((opt: any, i: number) => ({
+        text: opt.text,
+        is_correct: i === questionForm.value.correctIndex
+    }))
+
     const question = await quizStore.createQuestion(phase.id, {
         text: questionForm.value.text,
         points: questionForm.value.points,
         order: phase.questions.length + 1,
         time_limit: questionForm.value.time_limit,
-        has_options: questionForm.value.has_options,
-        options: questionForm.value.has_options ? questionForm.value.options : []
+        options
     })
     phase.questions.push(question)
     activePhaseId.value = null
@@ -219,6 +230,13 @@ header {
     margin-left: 8px;
 }
 
+.hint {
+    font-size: 11px;
+    color: #9ca3af;
+    font-weight: normal;
+    margin-left: 6px;
+}
+
 .field {
     display: flex;
     flex-direction: column;
@@ -230,16 +248,6 @@ header {
     font-size: 13px;
     color: #374151;
     font-weight: 500;
-}
-
-.checkbox-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    color: #374151;
-    font-weight: 500;
-    cursor: pointer;
 }
 
 input,
@@ -308,6 +316,18 @@ button.small {
     font-size: 12px;
 }
 
+.options-section {
+    margin-bottom: 12px;
+}
+
+.options-section>label {
+    font-size: 13px;
+    color: #374151;
+    font-weight: 500;
+    display: block;
+    margin-bottom: 8px;
+}
+
 .option-row {
     display: flex;
     align-items: center;
@@ -315,11 +335,14 @@ button.small {
     margin-bottom: 8px;
 }
 
-.options-list {
-    margin-top: 10px;
+.radio-label {
     display: flex;
-    flex-direction: column;
+    align-items: center;
     gap: 4px;
+    font-size: 13px;
+    color: #374151;
+    white-space: nowrap;
+    cursor: pointer;
 }
 
 .quiz-header {
