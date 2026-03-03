@@ -16,6 +16,7 @@ export const useGameStore = defineStore("game", {
     questionResolved: false as boolean,
     answerResult: null as { isCorrect: boolean; points: number } | null,
     resultsRevealed: false as boolean,
+    playedQuestions: [] as number[],
   }),
 
   actions: {
@@ -34,6 +35,7 @@ export const useGameStore = defineStore("game", {
 
     connectSocket(roomCode: string) {
       socket.connect();
+      this._loadPlayedQuestions(roomCode);
 
       socket.off("room:players_updated");
       socket.off("game:started");
@@ -57,10 +59,13 @@ export const useGameStore = defineStore("game", {
       });
 
       socket.on("game:started", ({ phases }: any) => {
+        this.playedQuestions = [];
+        this._clearPlayedQuestions(roomCode);
         this.phases = phases;
         this.status = "in_progress";
         this.currentPhase = null;
         this.currentQuestion = null;
+        this.playedQuestions = [];
 
         for (const phase of phases) {
           if (phase.questions && phase.questions.length > 0) {
@@ -77,12 +82,15 @@ export const useGameStore = defineStore("game", {
           this.currentQuestion = phase.questions.find(
             (q: any) => q.id === questionId,
           );
-          console.log("question chargée:", this.currentQuestion);
           this.buzzedPlayer = null;
           this.answers = [];
           this.questionResolved = false;
           this.answerResult = null;
           this.resultsRevealed = false;
+          if (!this.playedQuestions.includes(questionId)) {
+            this.playedQuestions.push(questionId);
+            this._savePlayedQuestions(roomCode);
+          }
         }
       });
 
@@ -118,6 +126,7 @@ export const useGameStore = defineStore("game", {
       socket.on("game:finished", ({ leaderboard }: any) => {
         this.players = leaderboard;
         this.status = "finished";
+        this._clearPlayedQuestions(roomCode);
       });
     },
 
@@ -170,7 +179,23 @@ export const useGameStore = defineStore("game", {
 
     revealResults(roomCode: string, questionId: number) {
       socket.emit("game:reveal_results", { roomCode, questionId });
-      console.log("socket Emit")
+      console.log("socket Emit");
+    },
+
+    _savePlayedQuestions(roomCode: string) {
+      localStorage.setItem(
+        `played_${roomCode}`,
+        JSON.stringify(this.playedQuestions),
+      );
+    },
+
+    _loadPlayedQuestions(roomCode: string) {
+      const saved = localStorage.getItem(`played_${roomCode}`);
+      this.playedQuestions = saved ? JSON.parse(saved) : [];
+    },
+
+    _clearPlayedQuestions(roomCode: string) {
+      localStorage.removeItem(`played_${roomCode}`);
     },
 
     endGame(roomCode: string) {

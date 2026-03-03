@@ -121,10 +121,12 @@
                 <select v-model="selectedQuestionId" :disabled="!selectedPhaseId">
                     <option :value="null" disabled>-- Choisir une question --</option>
                     <option v-for="q in currentPhaseQuestions" :key="q.id" :value="q.id">
-                        {{ q.text.substring(0, 40) }}
+                        {{ q.text.substring(0, 40) }} {{ gameStore.playedQuestions.includes(q.id) ? '✓' : '' }}
                     </option>
                 </select>
-                <button :disabled="!selectedPhaseId || !selectedQuestionId" @click="nextQuestion">
+                <button
+                    :disabled="!selectedPhaseId || !selectedQuestionId || (gameStore.playedQuestions.includes(selectedQuestionId) && selectedQuestionId !== gameStore.currentQuestion?.id)"
+                    @click="nextQuestion">
                     ➡️ Afficher cette question
                 </button>
                 <button class="danger" @click="endGame">🏁 Terminer le quiz</button>
