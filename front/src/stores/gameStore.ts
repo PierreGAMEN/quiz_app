@@ -17,7 +17,38 @@ export const useGameStore = defineStore("game", {
     answerResult: null as { isCorrect: boolean; points: number } | null,
     resultsRevealed: false as boolean,
     playedQuestions: [] as number[],
+    currentPhaseIndex: 0 as number,
+    currentQuestionIndex: 0 as number,
   }),
+
+getters: {
+  nextQuestionData(state): { phaseId: number, questionId: number } | null {
+    const phases = state.phases
+    if (!phases.length) return null
+
+    // Si pas de question courante, commence depuis le début
+    let pIdx = 0
+    let qIdx = 0
+
+    if (state.currentQuestion) {
+      pIdx = state.currentPhaseIndex
+      qIdx = state.currentQuestionIndex + 1
+    }
+
+    while (pIdx < phases.length) {
+      const questions = phases[pIdx].questions
+      while (qIdx < questions.length) {
+        if (!state.playedQuestions.includes(questions[qIdx].id)) {
+          return { phaseId: phases[pIdx].id, questionId: questions[qIdx].id }
+        }
+        qIdx++
+      }
+      pIdx++
+      qIdx = 0
+    }
+    return null
+  }
+},
 
   actions: {
     async createRoom(quiz_id: number) {
@@ -87,6 +118,15 @@ export const useGameStore = defineStore("game", {
           this.questionResolved = false;
           this.answerResult = null;
           this.resultsRevealed = false;
+
+          // Mise à jour des index
+          const pIdx = this.phases.findIndex((p: any) => p.id === phaseId);
+          const qIdx = this.phases[pIdx]?.questions.findIndex(
+            (q: any) => q.id === questionId,
+          );
+          this.currentPhaseIndex = pIdx >= 0 ? pIdx : 0;
+          this.currentQuestionIndex = qIdx >= 0 ? qIdx : 0;
+
           if (!this.playedQuestions.includes(questionId)) {
             this.playedQuestions.push(questionId);
             this._savePlayedQuestions(roomCode);
