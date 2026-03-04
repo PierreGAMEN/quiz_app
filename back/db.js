@@ -5,7 +5,10 @@ const pool = new Pool(
   process.env.DATABASE_URL
     ? {
         connectionString: process.env.DATABASE_URL,
-        ssl: { rejectUnauthorized: false }
+        ssl: { rejectUnauthorized: false },
+        max: 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 2000,
       }
     : {
         user: process.env.DB_USER,
@@ -15,6 +18,10 @@ const pool = new Pool(
         port: process.env.DB_PORT,
       }
 );
+
+pool.on('error', (err) => {
+  console.error('Erreur inattendue sur le pool PostgreSQL:', err);
+});
 
 pool.connect()
   .then(() => console.log('Connecté à PostgreSQL'))
