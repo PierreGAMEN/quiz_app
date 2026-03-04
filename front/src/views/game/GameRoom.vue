@@ -66,7 +66,7 @@
                         :class="{ 'card-buzz': gameStore.currentPhase?.type === 'buzz', 'card-qcm': gameStore.currentPhase?.type === 'all_answer' }">
                         <div class="question-badges">
                             <span class="badge-type">{{ gameStore.currentPhase?.type === 'buzz' ? '🔔 BUZZ' : '📝 QCM'
-                                }}</span>
+                            }}</span>
                             <span class="badge-pts">{{ gameStore.currentQuestion.points }} PT{{
                                 gameStore.currentQuestion.points > 1 ? 'S' : '' }}</span>
                             <span v-if="gameStore.currentQuestion.time_limit" class="badge-timer">⏱ {{
@@ -120,9 +120,8 @@
                                 <button v-for="(option, i) in gameStore.currentQuestion.options" :key="option.id"
                                     class="option-btn"
                                     :class="{ selected: selectedAnswer === option.text, disabled: hasAnswered }"
-                                    :data-letter="letters[i]" :disabled="hasAnswered"
-                                    @click="selectOption(option.text)">
-                                    <span class="option-letter">{{ letters[i] }}</span>
+                                    :disabled="hasAnswered" @click="selectOption(option.text)">
+                                    <span class="option-letter">{{ letters[i as number] }}</span>
                                     <span class="option-text">{{ option.text }}</span>
                                 </button>
                                 <p v-if="hasAnswered" class="answered-msg">
@@ -205,14 +204,6 @@ const gameStore = useGameStore()
 const letters = ['A', 'B', 'C', 'D']
 const isAdmin = computed(() => route.query.admin === 'true')
 const roomCode = computed(() => route.params.code as string)
-
-const selectedPhaseId = ref<number | null>(null)
-const selectedQuestionId = ref<number | null>(null)
-const currentPhaseQuestions = computed(() => {
-    if (!selectedPhaseId.value) return []
-    const phase = gameStore.phases.find(p => p.id === selectedPhaseId.value)
-    return phase?.questions || []
-})
 
 const selectedAnswer = ref('')
 const hasAnswered = ref(false)
