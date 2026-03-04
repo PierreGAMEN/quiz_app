@@ -6,15 +6,27 @@ const db = require('./db');
 
 const app = express();
 
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://quiz-app-pg.netlify.app'
+]
+
 const server = http.createServer(app);
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  }
+}));
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:5173',
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE']
   }
-});
-
-app.use(cors({ origin: 'http://localhost:5173' }));
+})
 app.use(express.json());
 const quizRoutes = require('./routes/quiz');
 const phaseRoutes = require('./routes/phase');
