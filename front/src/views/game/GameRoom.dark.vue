@@ -1,35 +1,16 @@
 <template>
     <div class="game-room">
 
-        <!-- Confettis globaux -->
-        <div class="confetti-layer">
-            <span v-for="i in 25" :key="i" class="confetti" :style="confettiStyle(i)"></span>
-        </div>
-
-        <!-- ─── LOBBY ─── -->
+        <!-- LOBBY -->
         <div v-if="gameStore.status === 'waiting'" class="lobby">
-            <div class="deco deco-circle-1"></div>
-            <div class="deco deco-circle-2"></div>
-            <div class="deco deco-star-1">⭐</div>
-            <div class="deco deco-star-2">🎉</div>
-
+            <div class="lobby-bg"></div>
             <div class="lobby-content">
-                <div class="birthday-badge">🎂 30 ANS — ÉDITION SPÉCIALE</div>
-
-                <h1 class="lobby-title">
-                    <span class="title-small">ROOM</span>
-                    <span class="title-big">{{ route.params.code }}</span>
-                </h1>
-
-                <div class="sport-icons">
-                    <span class="sport-icon" style="--d: 0s">🤸‍♀️</span>
-                    <span class="sport-icon" style="--d: 0.2s">🧗‍♀️</span>
-                    <span class="sport-icon" style="--d: 0.4s">⛷️</span>
-                </div>
+                <div class="logo-badge">QUIZ LIVE</div>
+                <h1 class="lobby-title">Room <span class="code-display">{{ route.params.code }}</span></h1>
 
                 <div class="players-panel">
                     <div class="players-header">
-                        <span class="players-label">JOUEURS CONNECTÉS</span>
+                        <span class="players-label">JOUEURS</span>
                         <span class="players-count">{{ gameStore.players.length }}</span>
                     </div>
                     <ul class="players-ul">
@@ -38,33 +19,28 @@
                             <span class="player-dot"></span>
                             {{ player.name }}
                         </li>
-                        <li v-if="gameStore.players.length === 0" class="player-empty">
-                            En attente de joueurs...
-                        </li>
                     </ul>
                 </div>
 
                 <div v-if="isAdmin" class="admin-actions">
                     <button :disabled="gameStore.players.length === 0" class="btn-launch" @click="startGame">
-                        🎮 LANCER LE QUIZ
+                        <span class="btn-icon">▶</span> LANCER LE QUIZ
                     </button>
                 </div>
                 <div v-else class="waiting-msg">
                     <span class="pulse-dot"></span>
-                    En attente du lancement par l'admin...
+                    En attente du lancement...
                 </div>
-
-                <p class="home-mention">Créé avec ❤️ pour ses 30 ans</p>
             </div>
         </div>
 
-        <!-- ─── JEU EN COURS ─── -->
+        <!-- JEU EN COURS -->
         <div v-else-if="gameStore.status === 'in_progress'" class="game">
 
             <!-- Top bar -->
             <div class="top-bar">
                 <div class="phase-pill">
-                    {{ gameStore.currentPhase?.type === 'buzz' ? '🔔' : '📝' }}
+                    <span class="phase-icon">{{ gameStore.currentPhase?.type === 'buzz' ? '🔔' : '📝' }}</span>
                     {{ gameStore.currentPhase?.title ?? '...' }}
                 </div>
                 <div class="scoreboard">
@@ -75,24 +51,23 @@
                 </div>
             </div>
 
-            <!-- Zone centrale -->
+            <!-- Zone centrale scrollable -->
             <div class="game-body" :class="{ 'has-admin-nav': isAdmin }">
 
-                <!-- Attente question -->
+                <!-- Waiting for question -->
                 <div v-if="!gameStore.currentQuestion" class="waiting-question">
-                    <div class="waiting-emoji">🎯</div>
-                    <p>{{ isAdmin ? 'Lance la première question !' : 'La prochaine question arrive...' }}</p>
+                    <div class="waiting-icon">⏳</div>
+                    <p>{{ isAdmin ? 'Choisis une question ci-dessous' : 'La prochaine question arrive...' }}</p>
                 </div>
 
-                <!-- Question -->
+                <!-- Question card -->
                 <div v-else class="question-wrapper">
                     <div class="question-card"
                         :class="{ 'card-buzz': gameStore.currentPhase?.type === 'buzz', 'card-qcm': gameStore.currentPhase?.type === 'all_answer' }">
-
                         <div class="question-badges">
                             <span class="badge-type">{{ gameStore.currentPhase?.type === 'buzz' ? '🔔 BUZZ' : '📝 QCM'
-                                }}</span>
-                            <span class="badge-pts">⭐ {{ gameStore.currentQuestion.points }} PT{{
+                            }}</span>
+                            <span class="badge-pts">{{ gameStore.currentQuestion.points }} PT{{
                                 gameStore.currentQuestion.points > 1 ? 'S' : '' }}</span>
                             <span v-if="gameStore.currentQuestion.time_limit" class="badge-timer">⏱ {{
                                 gameStore.currentQuestion.time_limit }}s</span>
@@ -103,7 +78,6 @@
                         <!-- BUZZ -->
                         <div v-if="gameStore.currentPhase?.type === 'buzz'" class="buzz-zone">
                             <div v-if="gameStore.buzzedPlayer" class="buzzed-display">
-                                <div class="buzzed-emoji">🔔</div>
                                 <div class="buzzed-name">{{ gameStore.buzzedPlayer.name }}</div>
                                 <div class="buzzed-label">A BUZZÉ !</div>
                                 <div v-if="isAdmin" class="award-row">
@@ -111,61 +85,53 @@
                                         ✅ +{{ gameStore.currentQuestion.points }} pts
                                     </button>
                                     <button class="btn-wrong" @click="awardPointsAndReset(0)">
-                                        ❌ Raté !
+                                        ❌ Mauvaise réponse
                                     </button>
                                 </div>
                             </div>
                             <div v-else-if="gameStore.questionResolved" class="resolved-display">
-                                <span class="resolved-big">🎉</span>
-                                <span>Bonne réponse trouvée !</span>
+                                <span class="resolved-icon">✅</span>
+                                <span>Question résolue !</span>
                             </div>
                             <button v-else-if="!isAdmin" class="buzz-btn" @click="buzz">
                                 <span class="buzz-ring"></span>
-                                <span class="buzz-ring buzz-ring-2"></span>
                                 <span class="buzz-label">BUZZ !</span>
                             </button>
-                            <div v-else-if="!isAdmin" class="waiting-buzz-player">
-                                <img :src="`${baseUrl}images/surprise.png`" class="character-buzz" alt="" />
-                                <p class="buzz-waiting-text">À toi de buzzer !</p>
-                            </div>
                             <div v-else class="waiting-buzz">
-                                <span class="pulse-dot blue"></span> En attente d'un buzz...
+                                <span class="pulse-dot"></span> En attente d'un buzz...
                             </div>
                         </div>
 
                         <!-- QCM -->
                         <div v-else-if="gameStore.currentPhase?.type === 'all_answer'" class="qcm-zone">
-
-                            <!-- Résultat joueur -->
                             <div v-if="!isAdmin && gameStore.answerResult !== null" class="result-display">
                                 <div v-if="gameStore.answerResult.isCorrect" class="result-correct">
-                                    <img :src="`${baseUrl}images/heureuse.png`" class="character-img" alt="" />
+                                    <span class="result-icon">✅</span>
                                     <span class="result-text">Bonne réponse !</span>
                                     <span class="result-pts">+{{ gameStore.answerResult.points }} pts</span>
                                 </div>
                                 <div v-else class="result-wrong">
-                                    <img :src="`${baseUrl}images/decue.png`" class="character-img" alt="" />
-                                    <span class="result-text">Pas cette fois !</span>
+                                    <span class="result-icon">❌</span>
+                                    <span class="result-text">Mauvaise réponse</span>
                                 </div>
                             </div>
 
-                            <!-- Options joueur -->
                             <div v-else-if="!isAdmin" class="options-grid">
                                 <button v-for="(option, i) in gameStore.currentQuestion.options" :key="option.id"
-                                    class="option-btn" :class="{ selected: selectedAnswer === option.text }"
+                                    class="option-btn"
+                                    :class="{ selected: selectedAnswer === option.text, disabled: hasAnswered }"
                                     :disabled="hasAnswered" @click="selectOption(option.text)">
                                     <span class="option-letter">{{ letters[i as number] }}</span>
                                     <span class="option-text">{{ option.text }}</span>
                                 </button>
-                                <div v-if="hasAnswered" class="answered-msg">
-                                    <span class="pulse-dot blue"></span> Réponse envoyée — en attente des autres...
-                                </div>
+                                <p v-if="hasAnswered" class="answered-msg">
+                                    <span class="pulse-dot green"></span> Réponse envoyée — en attente des autres...
+                                </p>
                             </div>
 
-                            <!-- Vue admin -->
                             <div v-if="isAdmin" class="admin-answers">
                                 <div class="admin-answers-header">
-                                    <span>Réponses reçues</span>
+                                    <span>Réponses</span>
                                     <span class="answers-counter">{{ gameStore.answers.length }} / {{
                                         gameStore.players.length }}</span>
                                 </div>
@@ -189,52 +155,36 @@
             <div v-if="isAdmin" class="admin-nav">
                 <div class="nav-info">
                     <span v-if="gameStore.currentQuestion" class="current-q">
-                        {{ gameStore.currentPhase?.title }} — {{ gameStore.currentQuestion.text.substring(0, 28) }}...
+                        {{ gameStore.currentPhase?.title }} — {{ gameStore.currentQuestion.text.substring(0, 30) }}...
                     </span>
-                    <span v-else class="current-q muted">Prêt à lancer ?</span>
+                    <span v-else class="current-q muted">Aucune question en cours</span>
                 </div>
                 <div class="nav-actions">
                     <button class="btn-next" :disabled="!gameStore.nextQuestionData" @click="nextQuestion">
-                        {{ gameStore.currentQuestion ? '➡️ Suivante' : '▶️ Lancer !' }}
+                        {{ gameStore.currentQuestion ? '➡️ Question suivante' : '▶️ Lancer le quiz' }}
                     </button>
                     <button class="btn-end" @click="endGame">🏁</button>
                 </div>
             </div>
+
         </div>
 
-        <!-- ─── FIN DE PARTIE ─── -->
+        <!-- FIN DE PARTIE -->
         <div v-else-if="gameStore.status === 'finished'" class="finished">
-            <div class="deco deco-circle-1"></div>
-            <div class="deco deco-circle-2"></div>
-
+            <div class="finished-bg"></div>
             <div class="finished-content">
-                <div class="trophy-emoji">🏆</div>
-                <img :src="`${baseUrl}/images/victoire.png`" class="character-img-large" alt="" />
-                <div class="birthday-badge">🎂 30 ANS — ÉDITION SPÉCIALE</div>
-                <h1 class="finished-title">
-                    <span class="title-small">LES</span>
-                    <span class="title-big">RÉSULTATS</span>
-                </h1>
-
+                <div class="trophy">🏆</div>
+                <h1 class="finished-title">RÉSULTATS</h1>
                 <ol class="leaderboard">
                     <li v-for="(player, index) in gameStore.players" :key="player.id" class="leaderboard-item"
                         :class="`rank-${index + 1}`" :style="`--i: ${index}`">
-                        <span class="lb-rank">{{ ['🥇', '🥈', '🥉'][index] ?? `${index + 1}.` }}</span>
+                        <span class="lb-rank">{{ ['🥇', '🥈', '🥉'][index] ?? index + 1 }}</span>
                         <span class="lb-name">{{ player.name }}</span>
                         <span class="lb-score">{{ player.score }}<span class="lb-unit">pts</span></span>
                     </li>
                 </ol>
-
-                <div class="sport-icons">
-                    <span class="sport-icon" style="--d: 0s">🤸‍♀️</span>
-                    <span class="sport-icon" style="--d: 0.2s">🧗‍♀️</span>
-                    <span class="sport-icon" style="--d: 0.4s">⛷️</span>
-                </div>
-
                 <button v-if="isAdmin" class="btn-back" @click="router.push('/admin')">← Retour admin</button>
                 <button v-else class="btn-back" @click="router.push('/')">← Accueil</button>
-
-                <p class="home-mention">Créé avec ❤️ pour ses 30 ans</p>
             </div>
         </div>
 
@@ -250,7 +200,6 @@ import api from '../../services/api'
 const route = useRoute()
 const router = useRouter()
 const gameStore = useGameStore()
-const baseUrl = import.meta.env.BASE_URL
 
 const letters = ['A', 'B', 'C', 'D']
 const isAdmin = computed(() => route.query.admin === 'true')
@@ -321,129 +270,17 @@ function endGame() {
 function getPlayerName(playerId: number) {
     return gameStore.players.find(p => p.id === playerId)?.name || 'Inconnu'
 }
-
-function confettiStyle(i: number) {
-    const colors = ['#1d4ed8', '#3b82f6', '#fbbf24', '#f472b6', '#34d399', '#f87171', '#a78bfa', '#ffffff']
-    const color = colors[i % colors.length]
-    const left = (i * 4.1) % 100
-    const delay = (i * 0.18) % 5
-    const duration = 4 + (i % 3)
-    const size = 6 + (i % 8)
-    return {
-        '--color': color,
-        left: `${left}%`,
-        animationDelay: `${delay}s`,
-        animationDuration: `${duration}s`,
-        width: `${size}px`,
-        height: `${size * 0.5}px`,
-        transform: `rotate(${i * 47}deg)`,
-    }
-}
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Righteous&family=Nunito:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap');
 
 /* ─── BASE ─── */
 .game-room {
     min-height: 100vh;
-    background: linear-gradient(160deg, #eff6ff 0%, #dbeafe 40%, #bfdbfe 100%);
-    font-family: 'Nunito', sans-serif;
-    color: #1e3a8a;
-    position: relative;
-}
-
-/* ─── CONFETTIS ─── */
-.confetti-layer {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    overflow: hidden;
-    z-index: 0;
-}
-
-.confetti {
-    position: absolute;
-    top: -20px;
-    background: var(--color);
-    border-radius: 2px;
-    animation: fall linear infinite;
-    opacity: 0.5;
-}
-
-@keyframes fall {
-    0% {
-        transform: translateY(-20px) rotate(0deg);
-        opacity: 0.6;
-    }
-
-    100% {
-        transform: translateY(110vh) rotate(720deg);
-        opacity: 0;
-    }
-}
-
-/* ─── DÉCOS ─── */
-.deco {
-    position: absolute;
-    pointer-events: none;
-    z-index: 0;
-}
-
-.deco-circle-1 {
-    width: 350px;
-    height: 350px;
-    border-radius: 50%;
-    border: 3px solid rgba(29, 78, 216, 0.1);
-    top: -100px;
-    right: -100px;
-    animation: spin 25s linear infinite;
-}
-
-.deco-circle-2 {
-    width: 220px;
-    height: 220px;
-    border-radius: 50%;
-    border: 2px dashed rgba(29, 78, 216, 0.08);
-    bottom: -60px;
-    left: -60px;
-    animation: spin 18s linear infinite reverse;
-}
-
-.deco-star-1 {
-    font-size: 28px;
-    top: 10%;
-    left: 6%;
-    animation: floatStar 3s ease-in-out infinite;
-}
-
-.deco-star-2 {
-    font-size: 24px;
-    top: 15%;
-    right: 8%;
-    animation: floatStar 3.5s ease-in-out infinite 0.5s;
-}
-
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-@keyframes floatStar {
-
-    0%,
-    100% {
-        transform: translateY(0) rotate(-5deg);
-    }
-
-    50% {
-        transform: translateY(-10px) rotate(5deg);
-    }
+    background: #0a0a12;
+    color: #f0f0f5;
+    font-family: 'DM Sans', sans-serif;
 }
 
 /* ─── LOBBY ─── */
@@ -454,7 +291,14 @@ function confettiStyle(i: number) {
     justify-content: center;
     position: relative;
     overflow: hidden;
-    padding: 24px;
+}
+
+.lobby-bg {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 60% 50% at 20% 50%, rgba(99, 60, 255, 0.25) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 60% at 80% 30%, rgba(255, 60, 120, 0.15) 0%, transparent 70%);
 }
 
 .lobby-content {
@@ -463,78 +307,44 @@ function confettiStyle(i: number) {
     text-align: center;
     width: 100%;
     max-width: 480px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
+    padding: 0 24px;
 }
 
-.birthday-badge {
-    background: linear-gradient(135deg, #1d4ed8, #3b82f6);
-    color: white;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 2px;
-    padding: 6px 18px;
+.logo-badge {
+    display: inline-block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    letter-spacing: 4px;
+    color: #a78bfa;
+    border: 1px solid rgba(167, 139, 250, 0.3);
+    padding: 4px 14px;
     border-radius: 99px;
-    box-shadow: 0 4px 16px rgba(29, 78, 216, 0.3);
+    margin-bottom: 24px;
 }
 
 .lobby-title {
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(36px, 8vw, 64px);
+    margin: 0 0 8px;
+    letter-spacing: 2px;
     line-height: 1;
 }
 
-.title-small {
-    font-family: 'Righteous', sans-serif;
-    font-size: clamp(16px, 4vw, 22px);
-    color: #3b82f6;
-    letter-spacing: 4px;
-}
-
-.title-big {
-    font-family: 'Righteous', sans-serif;
-    font-size: clamp(52px, 14vw, 80px);
-    color: #1e3a8a;
-    text-shadow: 3px 3px 0 rgba(29, 78, 216, 0.15);
-    line-height: 0.95;
-    letter-spacing: 3px;
-}
-
-.sport-icons {
-    display: flex;
-    gap: 16px;
-}
-
-.sport-icon {
-    font-size: 28px;
-    animation: bounce 2s ease-in-out infinite;
-    animation-delay: var(--d);
-    display: inline-block;
-}
-
-@keyframes bounce {
-
-    0%,
-    100% {
-        transform: translateY(0);
-    }
-
-    50% {
-        transform: translateY(-8px);
-    }
+.code-display {
+    color: #a78bfa;
+    background: rgba(167, 139, 250, 0.1);
+    padding: 2px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(167, 139, 250, 0.3);
 }
 
 .players-panel {
-    width: 100%;
-    background: white;
-    border: 2px solid rgba(29, 78, 216, 0.1);
-    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
     padding: 20px;
-    box-shadow: 0 4px 20px rgba(29, 78, 216, 0.08);
+    margin: 28px 0;
+    text-align: left;
 }
 
 .players-header {
@@ -546,16 +356,16 @@ function confettiStyle(i: number) {
 
 .players-label {
     font-size: 11px;
-    letter-spacing: 2px;
-    color: #93c5fd;
-    font-weight: 800;
-    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: #6b6b8a;
+    font-weight: 600;
 }
 
 .players-count {
-    font-family: 'Righteous', sans-serif;
-    font-size: 24px;
-    color: #1d4ed8;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: #a78bfa;
+    line-height: 1;
 }
 
 .players-ul {
@@ -572,16 +382,8 @@ function confettiStyle(i: number) {
     align-items: center;
     gap: 10px;
     font-size: 15px;
-    font-weight: 700;
-    color: #1e3a8a;
+    color: #d4d4e8;
     animation: slideIn 0.3s ease calc(var(--i) * 0.05s) both;
-}
-
-.player-empty {
-    color: #93c5fd;
-    font-size: 14px;
-    text-align: center;
-    padding: 8px 0;
 }
 
 @keyframes slideIn {
@@ -606,23 +408,25 @@ function confettiStyle(i: number) {
 }
 
 .btn-launch {
-    width: 100%;
-    padding: 18px;
-    background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
     color: white;
     border: none;
-    border-radius: 16px;
-    font-family: 'Righteous', sans-serif;
+    border-radius: 12px;
+    padding: 16px 36px;
+    font-family: 'Bebas Neue', sans-serif;
     font-size: 22px;
     letter-spacing: 2px;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 6px 24px rgba(29, 78, 216, 0.35);
+    box-shadow: 0 0 30px rgba(124, 58, 237, 0.4);
 }
 
 .btn-launch:hover:not(:disabled) {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 32px rgba(29, 78, 216, 0.45);
+    transform: translateY(-2px);
+    box-shadow: 0 0 40px rgba(124, 58, 237, 0.6);
 }
 
 .btn-launch:disabled {
@@ -630,26 +434,31 @@ function confettiStyle(i: number) {
     cursor: not-allowed;
 }
 
+.btn-icon {
+    font-size: 18px;
+}
+
 .waiting-msg {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 10px;
-    color: #93c5fd;
+    color: #6b6b8a;
     font-size: 15px;
-    font-weight: 600;
+    margin-top: 20px;
 }
 
 .pulse-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: #3b82f6;
+    background: #a78bfa;
     animation: pulse 1.5s infinite;
     flex-shrink: 0;
 }
 
-.pulse-dot.blue {
-    background: #3b82f6;
+.pulse-dot.green {
+    background: #22c55e;
 }
 
 @keyframes pulse {
@@ -666,44 +475,49 @@ function confettiStyle(i: number) {
     }
 }
 
-.home-mention {
-    color: #93c5fd;
-    font-size: 13px;
-    font-weight: 600;
-    margin: 0;
-}
-
 /* ─── GAME ─── */
 .game {
     height: 100vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    position: relative;
-    z-index: 1;
+}
+
+.game-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    padding-bottom: 24px;
+}
+
+.game-body.has-admin-nav {
+    padding-bottom: 100px;
 }
 
 .top-bar {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background: white;
-    border-bottom: 2px solid rgba(29, 78, 216, 0.1);
-    padding: 10px 16px;
-    gap: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 12px 20px;
+    gap: 16px;
     flex-wrap: wrap;
-    flex-shrink: 0;
-    box-shadow: 0 2px 12px rgba(29, 78, 216, 0.08);
 }
 
 .phase-pill {
-    font-family: 'Righteous', sans-serif;
-    font-size: 16px;
-    letter-spacing: 1px;
-    color: #1d4ed8;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 1px;
+    color: #a78bfa;
+}
+
+.phase-icon {
+    font-size: 16px;
 }
 
 .scoreboard {
@@ -722,65 +536,64 @@ function confettiStyle(i: number) {
 .score-name {
     font-size: 10px;
     letter-spacing: 1px;
-    color: #93c5fd;
+    color: #6b6b8a;
     text-transform: uppercase;
-    font-weight: 800;
 }
 
 .score-val {
-    font-family: 'Righteous', sans-serif;
+    font-family: 'Bebas Neue', sans-serif;
     font-size: 20px;
-    color: #1d4ed8;
+    color: #f0f0f5;
     line-height: 1;
 }
 
 .score-unit {
     font-size: 11px;
-    color: #93c5fd;
+    color: #6b6b8a;
     margin-left: 2px;
 }
 
-.game-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 16px;
-    padding-bottom: 24px;
-}
-
-.game-body.has-admin-nav {
-    padding-bottom: 90px;
-}
-
 .waiting-question {
+    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100%;
     gap: 16px;
-    color: #93c5fd;
-    min-height: 200px;
+    color: #6b6b8a;
 }
 
-.waiting-emoji {
-    font-size: 48px;
+.waiting-icon {
+    font-size: 40px;
     animation: bounce 2s infinite;
 }
 
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-8px);
+    }
+}
+
 .question-wrapper {
+    flex: 1;
     display: flex;
+    align-items: flex-start;
     justify-content: center;
 }
 
-/* ─── QUESTION CARD ─── */
 .question-card {
     width: 100%;
     max-width: 680px;
-    background: white;
-    border: 2px solid rgba(29, 78, 216, 0.1);
-    border-radius: 24px;
-    padding: 24px;
-    box-shadow: 0 4px 24px rgba(29, 78, 216, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 28px;
     position: relative;
     overflow: hidden;
 }
@@ -791,22 +604,22 @@ function confettiStyle(i: number) {
     top: 0;
     left: 0;
     right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #1d4ed8, #3b82f6, #f472b6);
+    height: 3px;
+    background: linear-gradient(90deg, #7c3aed, #a855f7, #ec4899);
 }
 
 .card-buzz::before {
-    background: linear-gradient(90deg, #f97316, #ef4444);
+    background: linear-gradient(90deg, #ef4444, #f97316);
 }
 
 .card-qcm::before {
-    background: linear-gradient(90deg, #1d4ed8, #3b82f6);
+    background: linear-gradient(90deg, #7c3aed, #a855f7);
 }
 
 .question-badges {
     display: flex;
     gap: 8px;
-    margin-bottom: 16px;
+    margin-bottom: 20px;
     flex-wrap: wrap;
 }
 
@@ -814,37 +627,37 @@ function confettiStyle(i: number) {
 .badge-pts,
 .badge-timer {
     font-size: 11px;
-    font-weight: 800;
+    font-weight: 600;
     letter-spacing: 1.5px;
-    padding: 4px 12px;
+    padding: 3px 10px;
     border-radius: 99px;
 }
 
 .badge-type {
-    background: #eff6ff;
-    color: #1d4ed8;
-    border: 1.5px solid #bfdbfe;
+    background: rgba(124, 58, 237, 0.2);
+    color: #a78bfa;
+    border: 1px solid rgba(124, 58, 237, 0.3);
 }
 
 .badge-pts {
-    background: #fffbeb;
-    color: #d97706;
-    border: 1.5px solid #fde68a;
+    background: rgba(234, 179, 8, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(234, 179, 8, 0.3);
 }
 
 .badge-timer {
-    background: #fff1f2;
-    color: #e11d48;
-    border: 1.5px solid #fecdd3;
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 .question-text {
-    font-family: 'Righteous', sans-serif;
-    font-size: clamp(20px, 4vw, 30px);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(24px, 4vw, 36px);
     letter-spacing: 1px;
-    line-height: 1.3;
-    margin: 0 0 24px;
-    color: #1e3a8a;
+    line-height: 1.2;
+    margin: 0 0 28px;
+    color: #f0f0f5;
 }
 
 /* ─── BUZZ ─── */
@@ -852,7 +665,7 @@ function confettiStyle(i: number) {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 8px 0;
+    padding: 10px 0;
 }
 
 .buzz-btn {
@@ -860,48 +673,43 @@ function confettiStyle(i: number) {
     width: 180px;
     height: 180px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #ef4444, #f97316);
+    background: linear-gradient(135deg, #ef4444, #dc2626);
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 32px rgba(239, 68, 68, 0.4), 0 0 60px rgba(239, 68, 68, 0.15);
+    box-shadow: 0 0 40px rgba(239, 68, 68, 0.5), 0 0 80px rgba(239, 68, 68, 0.2);
     transition: all 0.15s;
 }
 
 .buzz-btn:active {
-    transform: scale(0.92);
+    transform: scale(0.93);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
 }
 
 .buzz-ring {
     position: absolute;
-    inset: -10px;
+    inset: -8px;
     border-radius: 50%;
-    border: 3px solid rgba(239, 68, 68, 0.3);
+    border: 2px solid rgba(239, 68, 68, 0.4);
     animation: ring 2s infinite;
-}
-
-.buzz-ring-2 {
-    inset: -20px;
-    border-color: rgba(239, 68, 68, 0.15);
-    animation-delay: 0.4s;
 }
 
 @keyframes ring {
     0% {
         transform: scale(1);
-        opacity: 0.7;
+        opacity: 0.6;
     }
 
     100% {
-        transform: scale(1.2);
+        transform: scale(1.15);
         opacity: 0;
     }
 }
 
 .buzz-label {
-    font-family: 'Righteous', sans-serif;
+    font-family: 'Bebas Neue', sans-serif;
     font-size: 36px;
     letter-spacing: 3px;
     color: white;
@@ -926,24 +734,19 @@ function confettiStyle(i: number) {
     }
 }
 
-.buzzed-emoji {
-    font-size: 40px;
-    animation: bounce 0.5s ease;
-}
-
 .buzzed-name {
-    font-family: 'Righteous', sans-serif;
-    font-size: clamp(32px, 8vw, 52px);
-    color: #1d4ed8;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    letter-spacing: 2px;
+    color: #fbbf24;
+    text-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
     line-height: 1;
-    margin: 4px 0;
 }
 
 .buzzed-label {
-    font-size: 12px;
+    font-size: 13px;
     letter-spacing: 4px;
-    color: #93c5fd;
-    font-weight: 800;
+    color: #6b6b8a;
     margin-bottom: 20px;
 }
 
@@ -957,31 +760,30 @@ function confettiStyle(i: number) {
     background: linear-gradient(135deg, #16a34a, #22c55e);
     color: white;
     border: none;
-    border-radius: 12px;
+    border-radius: 10px;
     padding: 12px 24px;
     font-size: 15px;
-    font-weight: 800;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 4px 16px rgba(34, 197, 94, 0.3);
-    font-family: 'Nunito', sans-serif;
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
 }
 
 .btn-correct:hover {
     transform: translateY(-2px);
+    box-shadow: 0 0 30px rgba(34, 197, 94, 0.5);
 }
 
 .btn-wrong {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
+    background: linear-gradient(135deg, #b91c1c, #ef4444);
     color: white;
     border: none;
-    border-radius: 12px;
+    border-radius: 10px;
     padding: 12px 24px;
     font-size: 15px;
-    font-weight: 800;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    font-family: 'Nunito', sans-serif;
 }
 
 .btn-wrong:hover {
@@ -992,16 +794,15 @@ function confettiStyle(i: number) {
     display: flex;
     align-items: center;
     gap: 12px;
-    font-size: 18px;
-    font-weight: 700;
-    color: #16a34a;
-    padding: 16px 20px;
-    background: #f0fdf4;
-    border: 2px solid #bbf7d0;
-    border-radius: 14px;
+    font-size: 20px;
+    color: #22c55e;
+    padding: 20px;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    border-radius: 12px;
 }
 
-.resolved-big {
+.resolved-icon {
     font-size: 28px;
 }
 
@@ -1009,31 +810,8 @@ function confettiStyle(i: number) {
     display: flex;
     align-items: center;
     gap: 10px;
-    color: #93c5fd;
+    color: #6b6b8a;
     font-size: 15px;
-    font-weight: 600;
-}
-
-.waiting-buzz-player {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    padding: 16px 0;
-}
-
-.character-buzz {
-    width: 180px;
-    height: 180px;
-    object-fit: contain;
-    animation: bounce 2s infinite;
-}
-
-.buzz-waiting-text {
-    font-family: 'Righteous', sans-serif;
-    font-size: 18px;
-    color: #3b82f6;
-    margin: 0;
 }
 
 /* ─── QCM ─── */
@@ -1044,36 +822,33 @@ function confettiStyle(i: number) {
 .options-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    gap: 12px;
 }
 
 .option-btn {
     display: flex;
     align-items: center;
-    gap: 10px;
-    background: #f0f7ff;
-    border: 2px solid #bfdbfe;
-    border-radius: 14px;
-    padding: 14px;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 14px 16px;
     cursor: pointer;
     transition: all 0.15s;
     text-align: left;
-    color: #1e3a8a;
-    font-family: 'Nunito', sans-serif;
+    color: #d4d4e8;
 }
 
 .option-btn:hover:not(:disabled) {
-    background: #dbeafe;
-    border-color: #3b82f6;
+    background: rgba(124, 58, 237, 0.15);
+    border-color: rgba(124, 58, 237, 0.5);
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.15);
 }
 
 .option-btn.selected {
-    background: #1d4ed8;
-    border-color: #1d4ed8;
-    color: white;
-    box-shadow: 0 4px 16px rgba(29, 78, 216, 0.3);
+    background: rgba(124, 58, 237, 0.25);
+    border-color: #7c3aed;
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.2);
 }
 
 .option-btn:disabled {
@@ -1082,12 +857,12 @@ function confettiStyle(i: number) {
 }
 
 .option-letter {
-    width: 30px;
-    height: 30px;
+    width: 28px;
+    height: 28px;
     border-radius: 8px;
-    background: #bfdbfe;
-    color: #1d4ed8;
-    font-family: 'Righteous', sans-serif;
+    background: rgba(124, 58, 237, 0.3);
+    color: #a78bfa;
+    font-family: 'Bebas Neue', sans-serif;
     font-size: 16px;
     display: flex;
     align-items: center;
@@ -1096,13 +871,13 @@ function confettiStyle(i: number) {
 }
 
 .option-btn.selected .option-letter {
-    background: rgba(255, 255, 255, 0.2);
+    background: #7c3aed;
     color: white;
 }
 
 .option-text {
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 500;
     line-height: 1.3;
 }
 
@@ -1111,15 +886,17 @@ function confettiStyle(i: number) {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #3b82f6;
+    color: #6b6b8a;
     font-size: 13px;
-    font-weight: 600;
     margin-top: 4px;
 }
 
 .result-display {
     display: flex;
+    align-items: center;
     justify-content: center;
+    padding: 30px;
+    border-radius: 16px;
     animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -1128,10 +905,11 @@ function confettiStyle(i: number) {
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    background: #f0fdf4;
-    border: 2px solid #bbf7d0;
-    border-radius: 20px;
-    padding: 32px 40px;
+    color: #22c55e;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    border-radius: 16px;
+    padding: 28px 40px;
     width: 100%;
 }
 
@@ -1140,29 +918,27 @@ function confettiStyle(i: number) {
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    background: #fff1f2;
-    border: 2px solid #fecdd3;
-    border-radius: 20px;
-    padding: 32px 40px;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 16px;
+    padding: 28px 40px;
     width: 100%;
 }
 
-.result-big-emoji {
-    font-size: 48px;
-    animation: bounce 0.6s ease;
+.result-icon {
+    font-size: 40px;
 }
 
 .result-text {
-    font-family: 'Righteous', sans-serif;
-    font-size: 26px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
     letter-spacing: 2px;
-    color: #1e3a8a;
 }
 
 .result-pts {
-    font-size: 20px;
-    font-weight: 800;
-    color: #1d4ed8;
+    font-size: 18px;
+    font-weight: 700;
 }
 
 .admin-answers {
@@ -1177,16 +953,16 @@ function confettiStyle(i: number) {
     align-items: center;
     font-size: 11px;
     letter-spacing: 2px;
-    color: #93c5fd;
-    font-weight: 800;
+    color: #6b6b8a;
     text-transform: uppercase;
     margin-bottom: 4px;
 }
 
 .answers-counter {
-    font-family: 'Righteous', sans-serif;
-    font-size: 20px;
-    color: #1d4ed8;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    color: #a78bfa;
+    letter-spacing: 1px;
 }
 
 .admin-answer-row {
@@ -1194,49 +970,46 @@ function confettiStyle(i: number) {
     justify-content: space-between;
     align-items: center;
     padding: 10px 14px;
-    background: #f0f7ff;
-    border: 1.5px solid #bfdbfe;
-    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
 }
 
 .ans-player {
     font-size: 13px;
-    color: #93c5fd;
-    font-weight: 700;
+    color: #6b6b8a;
 }
 
 .ans-value {
     font-size: 14px;
-    font-weight: 800;
-    color: #1d4ed8;
+    font-weight: 600;
+    color: #d4d4e8;
 }
 
 .waiting-text {
-    color: #93c5fd;
+    color: #6b6b8a;
     font-size: 13px;
     text-align: center;
-    font-weight: 600;
 }
 
 .btn-reveal {
     margin-top: 8px;
     width: 100%;
     padding: 14px;
-    background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
     color: white;
     border: none;
-    border-radius: 14px;
-    font-size: 16px;
-    font-weight: 800;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 4px 16px rgba(29, 78, 216, 0.3);
-    font-family: 'Nunito', sans-serif;
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
 }
 
 .btn-reveal:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(29, 78, 216, 0.4);
+    box-shadow: 0 0 30px rgba(124, 58, 237, 0.5);
+    transform: translateY(-1px);
 }
 
 .btn-reveal:disabled {
@@ -1253,32 +1026,40 @@ function confettiStyle(i: number) {
     display: flex;
     gap: 8px;
     align-items: center;
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(10, 10, 18, 0.95);
     backdrop-filter: blur(12px);
-    border-top: 2px solid rgba(29, 78, 216, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
     padding: 12px 16px;
     padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    flex-wrap: nowrap;
     z-index: 100;
-    box-shadow: 0 -4px 20px rgba(29, 78, 216, 0.08);
 }
 
-.nav-info {
+.nav-selects {
+    display: flex;
+    gap: 8px;
     flex: 1;
     min-width: 0;
 }
 
-.current-q {
-    font-size: 12px;
-    font-weight: 700;
-    color: #3b82f6;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: block;
+.nav-select {
+    flex: 1;
+    min-width: 0;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: #d4d4e8;
+    font-size: 13px;
+    cursor: pointer;
+    direction: ltr;
+    /* Force l'ouverture vers le haut */
+    position: relative;
+    transform: translateZ(0);
 }
 
-.current-q.muted {
-    color: #93c5fd;
+.nav-select option {
+    background: #1a1a2e;
 }
 
 .nav-actions {
@@ -1289,17 +1070,15 @@ function confettiStyle(i: number) {
 
 .btn-next {
     padding: 10px 16px;
-    background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+    background: linear-gradient(135deg, #7c3aed, #a855f7);
     color: white;
     border: none;
-    border-radius: 10px;
+    border-radius: 8px;
     font-size: 13px;
-    font-weight: 800;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
     white-space: nowrap;
-    font-family: 'Nunito', sans-serif;
-    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.3);
 }
 
 .btn-next:disabled {
@@ -1308,22 +1087,37 @@ function confettiStyle(i: number) {
 }
 
 .btn-next:hover:not(:disabled) {
-    transform: translateY(-1px);
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
 }
 
 .btn-end {
-    padding: 10px 14px;
-    background: #fff1f2;
-    color: #e11d48;
-    border: 2px solid #fecdd3;
-    border-radius: 10px;
-    font-size: 16px;
+    padding: 10px 20px;
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
+    white-space: nowrap;
 }
 
 .btn-end:hover {
-    background: #ffe4e6;
+    background: rgba(239, 68, 68, 0.25);
+}
+
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0;
+    padding: 10px 16px;
+    gap: 12px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
 }
 
 /* ─── FINISHED ─── */
@@ -1334,7 +1128,14 @@ function confettiStyle(i: number) {
     justify-content: center;
     position: relative;
     overflow: hidden;
-    padding: 24px;
+}
+
+.finished-bg {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(ellipse 60% 50% at 50% 0%, rgba(234, 179, 8, 0.15) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 40% at 20% 80%, rgba(124, 58, 237, 0.15) 0%, transparent 60%);
 }
 
 .finished-content {
@@ -1343,31 +1144,30 @@ function confettiStyle(i: number) {
     text-align: center;
     width: 100%;
     max-width: 500px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
+    padding: 0 24px;
 }
 
-.trophy-emoji {
-    font-size: 72px;
-    animation: bounce 1.5s infinite;
+.trophy {
+    font-size: 64px;
+    animation: bounce 2s infinite;
     display: block;
+    margin-bottom: 8px;
 }
 
 .finished-title {
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    line-height: 1;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(48px, 10vw, 80px);
+    letter-spacing: 6px;
+    margin: 0 0 32px;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .leaderboard {
     list-style: none;
     padding: 0;
-    margin: 0;
-    width: 100%;
+    margin: 0 0 32px;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -1377,28 +1177,16 @@ function confettiStyle(i: number) {
     display: flex;
     align-items: center;
     gap: 16px;
-    background: white;
-    border: 2px solid rgba(29, 78, 216, 0.1);
-    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
     padding: 16px 20px;
     animation: slideIn 0.4s ease calc(var(--i) * 0.1s) both;
-    box-shadow: 0 2px 12px rgba(29, 78, 216, 0.06);
 }
 
 .leaderboard-item.rank-1 {
-    background: linear-gradient(135deg, #fffbeb, #fef3c7);
-    border-color: #fde68a;
-    box-shadow: 0 4px 20px rgba(234, 179, 8, 0.2);
-}
-
-.leaderboard-item.rank-2 {
-    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-    border-color: #cbd5e1;
-}
-
-.leaderboard-item.rank-3 {
-    background: linear-gradient(135deg, #fff7ed, #ffedd5);
-    border-color: #fed7aa;
+    background: rgba(234, 179, 8, 0.1);
+    border-color: rgba(234, 179, 8, 0.3);
 }
 
 .lb-rank {
@@ -1410,61 +1198,36 @@ function confettiStyle(i: number) {
 .lb-name {
     flex: 1;
     font-size: 16px;
-    font-weight: 800;
+    font-weight: 500;
     text-align: left;
-    color: #1e3a8a;
 }
 
 .lb-score {
-    font-family: 'Righteous', sans-serif;
+    font-family: 'Bebas Neue', sans-serif;
     font-size: 26px;
-    color: #1d4ed8;
+    color: #fbbf24;
     line-height: 1;
 }
 
 .lb-unit {
     font-size: 12px;
-    color: #93c5fd;
+    color: #6b6b8a;
     margin-left: 2px;
 }
 
 .btn-back {
-    padding: 14px 32px;
-    background: white;
-    color: #1d4ed8;
-    border: 2px solid #bfdbfe;
-    border-radius: 14px;
+    padding: 12px 28px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #d4d4e8;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
     font-size: 15px;
-    font-weight: 800;
     cursor: pointer;
     transition: all 0.2s;
-    font-family: 'Nunito', sans-serif;
-    box-shadow: 0 2px 12px rgba(29, 78, 216, 0.1);
 }
 
 .btn-back:hover {
-    background: #eff6ff;
-    transform: translateY(-2px);
-}
-
-.character-img {
-    width: 140px;
-    height: 140px;
-    object-fit: contain;
-    animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.character-img-small {
-    width: 80px;
-    height: 80px;
-    object-fit: contain;
-}
-
-.character-img-large {
-    width: 180px;
-    height: 180px;
-    object-fit: contain;
-    animation: bounce 2s infinite;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 /* ─── RESPONSIVE ─── */
@@ -1476,6 +1239,10 @@ function confettiStyle(i: number) {
     .top-bar {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    .nav-selects {
+        flex-direction: column;
     }
 }
 </style>
