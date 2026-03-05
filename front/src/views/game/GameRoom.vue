@@ -59,10 +59,10 @@
         </div>
 
         <!-- ─── JEU EN COURS ─── -->
-        <div v-else-if="gameStore.status === 'in_progress'" class="game">
+        <div v-else-if="gameStore.status === 'in_progress'" class="game" :class="{ 'game-display': isDisplay }">
 
-            <!-- Top bar -->
-            <div class="top-bar">
+            <!-- Top bar — masquée en mode display -->
+            <div v-if="!isDisplay" class="top-bar">
                 <div class="phase-pill">
                     {{ gameStore.currentPhase?.type === 'buzz' ? '🔔' : '📝' }}
                     {{ gameStore.currentPhase?.title ?? '...' }}
@@ -86,10 +86,52 @@
 
                 <!-- Question -->
                 <div v-else class="question-wrapper">
-                    <div class="question-card"
+
+                    <!-- ── MODE DISPLAY TV ── -->
+                    <div v-if="isDisplay" class="display-card">
+                        <div class="display-phase">
+                            {{ gameStore.currentPhase?.type === 'buzz' ? '🔔' : '📝' }}
+                            {{ gameStore.currentPhase?.title }}
+                        </div>
+
+                        <h2 class="display-question">{{ gameStore.currentQuestion.text }}</h2>
+
+                        <!-- QCM TV : options ou bonne réponse après révélation -->
+                        <div v-if="gameStore.currentPhase?.type === 'all_answer'">
+                            <div v-if="gameStore.resultsRevealed && gameStore.correctAnswer"
+                                class="display-correct-answer">
+                                ✅ {{ gameStore.correctAnswer }}
+                            </div>
+                            <div v-else class="display-options">
+                                <div v-for="(option, i) in gameStore.currentQuestion.options" :key="option.id"
+                                    class="display-option" :class="`display-option-${i}`">
+                                    <span class="display-option-letter">{{ letters[i as number] }}</span>
+                                    <span class="display-option-text">{{ option.text }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Buzz TV -->
+                        <div v-else-if="gameStore.currentPhase?.type === 'buzz'" class="display-buzz">
+                            <div v-if="gameStore.buzzedPlayer" class="display-buzzed">
+                                <div class="display-buzzed-name">{{ gameStore.buzzedPlayer.name }}</div>
+                                <div class="display-buzzed-label">A BUZZÉ ! 🔔</div>
+                            </div>
+                            <div v-else-if="gameStore.questionResolved" class="display-resolved">
+                                🎉 Bonne réponse trouvée !
+                            </div>
+                            <div v-else class="display-waiting-buzz">
+                                <span class="pulse-dot blue"></span> En attente d'un buzz...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ── MODE NORMAL (admin + joueurs) ── -->
+                    <div v-else class="question-card"
                         :class="{ 'card-buzz': gameStore.currentPhase?.type === 'buzz', 'card-qcm': gameStore.currentPhase?.type === 'all_answer' }">
 
-                        <div class="question-badges">
+                        <!-- Badges et question — masqués sur téléphone joueur en mode display -->
+                        <div v-if="!gameStore.displayMode || isAdmin" class="question-badges">
                             <span class="badge-type">{{ gameStore.currentPhase?.type === 'buzz' ? '🔔 BUZZ' : '📝 QCM'
                                 }}</span>
                             <span class="badge-pts">⭐ {{ gameStore.currentQuestion.points }} PT{{
@@ -98,10 +140,14 @@
                                 gameStore.currentQuestion.time_limit }}s</span>
                         </div>
 
-                        <h2 class="question-text">{{ gameStore.currentQuestion.text }}</h2>
+                        <h2 v-if="!gameStore.displayMode || isAdmin" class="question-text">
+                            {{ gameStore.currentQuestion.text }}
+                        </h2>
 
-                        <!-- BUZZ -->
+                        <!-- ── BUZZ ── -->
                         <div v-if="gameStore.currentPhase?.type === 'buzz'" class="buzz-zone">
+
+                            <!-- Quelqu'un a buzzé -->
                             <div v-if="gameStore.buzzedPlayer" class="buzzed-display">
                                 <div class="buzzed-emoji">🔔</div>
                                 <div class="buzzed-name">{{ gameStore.buzzedPlayer.name }}</div>
@@ -115,28 +161,30 @@
                                     </button>
                                 </div>
                             </div>
+
+                            <!-- Question résolue -->
                             <div v-else-if="gameStore.questionResolved" class="resolved-display">
                                 <span class="resolved-big">🎉</span>
                                 <span>Bonne réponse trouvée !</span>
                             </div>
+
+                            <!-- Joueur : bouton buzz -->
                             <button v-else-if="!isAdmin" class="buzz-btn" @click="buzz">
                                 <span class="buzz-ring"></span>
                                 <span class="buzz-ring buzz-ring-2"></span>
                                 <span class="buzz-label">BUZZ !</span>
                             </button>
-                            <div v-else-if="!isAdmin" class="waiting-buzz-player">
-                                <img :src="`${baseUrl}images/surprise.png`" class="character-buzz" alt="" />
-                                <p class="buzz-waiting-text">À toi de buzzer !</p>
-                            </div>
+
+                            <!-- Admin : attente -->
                             <div v-else class="waiting-buzz">
                                 <span class="pulse-dot blue"></span> En attente d'un buzz...
                             </div>
                         </div>
 
-                        <!-- QCM -->
+                        <!-- ── QCM ── -->
                         <div v-else-if="gameStore.currentPhase?.type === 'all_answer'" class="qcm-zone">
 
-                            <!-- Résultat joueur -->
+                            <!-- Résultat joueur après révélation -->
                             <div v-if="!isAdmin && gameStore.answerResult !== null" class="result-display">
                                 <div v-if="gameStore.answerResult.isCorrect" class="result-correct">
                                     <img :src="`${baseUrl}images/heureuse.png`" class="character-img" alt="" />
@@ -150,12 +198,15 @@
                             </div>
 
                             <!-- Options joueur -->
-                            <div v-else-if="!isAdmin" class="options-grid">
+                            <div v-else-if="!isAdmin" class="options-grid"
+                                :class="{ 'options-grid-display': gameStore.displayMode }">
                                 <button v-for="(option, i) in gameStore.currentQuestion.options" :key="option.id"
-                                    class="option-btn" :class="{ selected: selectedAnswer === option.text }"
-                                    :disabled="hasAnswered" @click="selectOption(option.text)">
+                                    class="option-btn" :class="{
+                                        selected: selectedAnswer === option.text,
+                                        'option-btn-large': gameStore.displayMode
+                                    }" :disabled="hasAnswered" @click="selectOption(option.text)">
                                     <span class="option-letter">{{ letters[i as number] }}</span>
-                                    <span class="option-text">{{ option.text }}</span>
+                                    <span v-if="!gameStore.displayMode" class="option-text">{{ option.text }}</span>
                                 </button>
                                 <div v-if="hasAnswered" class="answered-msg">
                                     <span class="pulse-dot blue"></span> Réponse envoyée — en attente des autres...
@@ -169,14 +220,27 @@
                                     <span class="answers-counter">{{ gameStore.answers.length }} / {{
                                         gameStore.players.length }}</span>
                                 </div>
-                                <div v-for="ans in gameStore.answers" :key="ans.playerId" class="admin-answer-row">
+
+                                <!-- Bonne réponse après révélation -->
+                                <div v-if="gameStore.resultsRevealed && gameStore.correctAnswer"
+                                    class="correct-answer-banner">
+                                    ✅ Bonne réponse : <strong>{{ gameStore.correctAnswer }}</strong>
+                                </div>
+
+                                <div v-for="ans in gameStore.answers" :key="ans.playerId" class="admin-answer-row"
+                                    :class="{
+                                        'row-correct': gameStore.resultsRevealed && ans.answer?.toLowerCase().trim() === gameStore.correctAnswer?.toLowerCase().trim(),
+                                        'row-wrong': gameStore.resultsRevealed && ans.answer?.toLowerCase().trim() !== gameStore.correctAnswer?.toLowerCase().trim()
+                                    }">
                                     <span class="ans-player">{{ getPlayerName(ans.playerId) }}</span>
                                     <span class="ans-value">{{ ans.answer }}</span>
                                 </div>
+
                                 <p v-if="gameStore.answers.length === 0" class="waiting-text">En attente des réponses...
                                 </p>
-                                <button class="btn-reveal" :disabled="gameStore.answers.length === 0"
-                                    @click="revealResults">
+
+                                <button v-if="!gameStore.resultsRevealed" class="btn-reveal"
+                                    :disabled="gameStore.answers.length === 0" @click="revealResults">
                                     🎯 Révéler les résultats
                                 </button>
                             </div>
@@ -194,6 +258,10 @@
                     <span v-else class="current-q muted">Prêt à lancer ?</span>
                 </div>
                 <div class="nav-actions">
+                    <button class="btn-display-toggle" :class="{ active: gameStore.displayMode }"
+                        @click="toggleDisplayMode">
+                        {{ gameStore.displayMode ? '📺 ON' : '📺 OFF' }}
+                    </button>
                     <button class="btn-next" :disabled="!gameStore.nextQuestionData" @click="nextQuestion">
                         {{ gameStore.currentQuestion ? '➡️ Suivante' : '▶️ Lancer !' }}
                     </button>
@@ -209,7 +277,7 @@
 
             <div class="finished-content">
                 <div class="trophy-emoji">🏆</div>
-                <img :src="`${baseUrl}/images/victoire.png`" class="character-img-large" alt="" />
+                <img :src="`${baseUrl}images/victoire.png`" class="character-img-large" alt="" />
                 <div class="birthday-badge">🎂 30 ANS — ÉDITION SPÉCIALE</div>
                 <h1 class="finished-title">
                     <span class="title-small">LES</span>
@@ -254,6 +322,7 @@ const baseUrl = import.meta.env.BASE_URL
 
 const letters = ['A', 'B', 'C', 'D']
 const isAdmin = computed(() => route.query.admin === 'true')
+const isDisplay = computed(() => route.query.display === 'true')
 const roomCode = computed(() => route.params.code as string)
 
 const selectedAnswer = ref('')
@@ -280,6 +349,10 @@ watch(() => gameStore.buzzedPlayer, (val) => { if (val === null) hasAnswered.val
 watch(() => gameStore.currentQuestion, () => { hasAnswered.value = false; selectedAnswer.value = '' })
 
 function startGame() { gameStore.startGame(roomCode.value) }
+
+function toggleDisplayMode() {
+    gameStore.setDisplayMode(roomCode.value, !gameStore.displayMode)
+}
 
 function nextQuestion() {
     const next = gameStore.nextQuestionData
@@ -683,6 +756,20 @@ function confettiStyle(i: number) {
     z-index: 1;
 }
 
+.game-display {
+    height: 100vh;
+    overflow: hidden;
+}
+
+.game-display .game-body {
+    padding: 0;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
 .top-bar {
     display: flex;
     justify-content: space-between;
@@ -928,7 +1015,6 @@ function confettiStyle(i: number) {
 
 .buzzed-emoji {
     font-size: 40px;
-    animation: bounce 0.5s ease;
 }
 
 .buzzed-name {
@@ -1014,28 +1100,6 @@ function confettiStyle(i: number) {
     font-weight: 600;
 }
 
-.waiting-buzz-player {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
-    padding: 16px 0;
-}
-
-.character-buzz {
-    width: 180px;
-    height: 180px;
-    object-fit: contain;
-    animation: bounce 2s infinite;
-}
-
-.buzz-waiting-text {
-    font-family: 'Righteous', sans-serif;
-    font-size: 18px;
-    color: #3b82f6;
-    margin: 0;
-}
-
 /* ─── QCM ─── */
 .qcm-zone {
     width: 100%;
@@ -1045,6 +1109,10 @@ function confettiStyle(i: number) {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
+}
+
+.options-grid-display {
+    gap: 16px;
 }
 
 .option-btn {
@@ -1106,6 +1174,19 @@ function confettiStyle(i: number) {
     line-height: 1.3;
 }
 
+.option-btn-large {
+    justify-content: center;
+    padding: 24px;
+    min-height: 80px;
+}
+
+.option-btn-large .option-letter {
+    width: 44px;
+    height: 44px;
+    font-size: 24px;
+    border-radius: 12px;
+}
+
 .answered-msg {
     grid-column: 1 / -1;
     display: flex;
@@ -1117,6 +1198,7 @@ function confettiStyle(i: number) {
     margin-top: 4px;
 }
 
+/* ─── RÉSULTATS JOUEUR ─── */
 .result-display {
     display: flex;
     justify-content: center;
@@ -1147,11 +1229,6 @@ function confettiStyle(i: number) {
     width: 100%;
 }
 
-.result-big-emoji {
-    font-size: 48px;
-    animation: bounce 0.6s ease;
-}
-
 .result-text {
     font-family: 'Righteous', sans-serif;
     font-size: 26px;
@@ -1165,6 +1242,7 @@ function confettiStyle(i: number) {
     color: #1d4ed8;
 }
 
+/* ─── ADMIN ANSWERS ─── */
 .admin-answers {
     display: flex;
     flex-direction: column;
@@ -1189,6 +1267,18 @@ function confettiStyle(i: number) {
     color: #1d4ed8;
 }
 
+.correct-answer-banner {
+    background: #f0fdf4;
+    border: 2px solid #bbf7d0;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 15px;
+    font-weight: 700;
+    color: #16a34a;
+    text-align: center;
+    animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 .admin-answer-row {
     display: flex;
     justify-content: space-between;
@@ -1197,6 +1287,18 @@ function confettiStyle(i: number) {
     background: #f0f7ff;
     border: 1.5px solid #bfdbfe;
     border-radius: 10px;
+    transition: all 0.3s;
+}
+
+.row-correct {
+    background: #f0fdf4 !important;
+    border-color: #bbf7d0 !important;
+}
+
+.row-wrong {
+    background: #fff1f2 !important;
+    border-color: #fecdd3 !important;
+    opacity: 0.6;
 }
 
 .ans-player {
@@ -1244,6 +1346,151 @@ function confettiStyle(i: number) {
     cursor: not-allowed;
 }
 
+/* ─── MODE DISPLAY TV ─── */
+.display-card {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 48px;
+    padding: 60px 100px;
+}
+
+.display-phase {
+    font-family: 'Righteous', sans-serif;
+    font-size: 22px;
+    color: #3b82f6;
+    letter-spacing: 3px;
+    text-align: center;
+    background: white;
+    padding: 8px 24px;
+    border-radius: 99px;
+    border: 2px solid #bfdbfe;
+}
+
+.display-question {
+    font-family: 'Righteous', sans-serif;
+    font-size: clamp(40px, 6vw, 72px);
+    color: #1e3a8a;
+    text-align: center;
+    line-height: 1.2;
+    margin: 0;
+}
+
+.display-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    width: 100%;
+    max-width: 900px;
+}
+
+.display-option {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 24px 32px;
+    border-radius: 20px;
+    font-size: 26px;
+    font-weight: 800;
+    font-family: 'Nunito', sans-serif;
+}
+
+.display-option-0 {
+    background: #eff6ff;
+    border: 2px solid #bfdbfe;
+    color: #1e3a8a;
+}
+
+.display-option-1 {
+    background: #f0fdf4;
+    border: 2px solid #bbf7d0;
+    color: #14532d;
+}
+
+.display-option-2 {
+    background: #fffbeb;
+    border: 2px solid #fde68a;
+    color: #78350f;
+}
+
+.display-option-3 {
+    background: #fff1f2;
+    border: 2px solid #fecdd3;
+    color: #881337;
+}
+
+.display-option-letter {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: rgba(29, 78, 216, 0.1);
+    color: #1d4ed8;
+    font-family: 'Righteous', sans-serif;
+    font-size: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.display-option-text {
+    font-size: 22px;
+}
+
+.display-correct-answer {
+    font-family: 'Righteous', sans-serif;
+    font-size: clamp(32px, 6vw, 60px);
+    color: #16a34a;
+    background: #f0fdf4;
+    border: 3px solid #bbf7d0;
+    border-radius: 24px;
+    padding: 32px 64px;
+    text-align: center;
+    animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.display-buzz {
+    text-align: center;
+}
+
+.display-buzzed-name {
+    font-family: 'Righteous', sans-serif;
+    font-size: clamp(60px, 12vw, 120px);
+    color: #1d4ed8;
+    line-height: 1;
+    text-align: center;
+    animation: popIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.display-buzzed-label {
+    font-size: 32px;
+    font-weight: 800;
+    color: #3b82f6;
+    letter-spacing: 4px;
+    text-align: center;
+    margin-top: 8px;
+}
+
+.display-resolved {
+    font-family: 'Righteous', sans-serif;
+    font-size: 36px;
+    color: #16a34a;
+    text-align: center;
+}
+
+.display-waiting-buzz {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #93c5fd;
+}
+
 /* ─── ADMIN NAV ─── */
 .admin-nav {
     position: fixed;
@@ -1285,6 +1532,27 @@ function confettiStyle(i: number) {
     display: flex;
     gap: 8px;
     flex-shrink: 0;
+}
+
+.btn-display-toggle {
+    padding: 10px 14px;
+    background: #f0f7ff;
+    color: #93c5fd;
+    border: 2px solid #bfdbfe;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    font-family: 'Nunito', sans-serif;
+}
+
+.btn-display-toggle.active {
+    background: #1d4ed8;
+    color: white;
+    border-color: #1d4ed8;
+    box-shadow: 0 4px 12px rgba(29, 78, 216, 0.3);
 }
 
 .btn-next {
@@ -1428,6 +1696,20 @@ function confettiStyle(i: number) {
     margin-left: 2px;
 }
 
+.character-img {
+    width: 140px;
+    height: 140px;
+    object-fit: contain;
+    animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.character-img-large {
+    width: 180px;
+    height: 180px;
+    object-fit: contain;
+    animation: bounce 2s infinite;
+}
+
 .btn-back {
     padding: 14px 32px;
     background: white;
@@ -1445,26 +1727,6 @@ function confettiStyle(i: number) {
 .btn-back:hover {
     background: #eff6ff;
     transform: translateY(-2px);
-}
-
-.character-img {
-    width: 140px;
-    height: 140px;
-    object-fit: contain;
-    animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.character-img-small {
-    width: 80px;
-    height: 80px;
-    object-fit: contain;
-}
-
-.character-img-large {
-    width: 180px;
-    height: 180px;
-    object-fit: contain;
-    animation: bounce 2s infinite;
 }
 
 /* ─── RESPONSIVE ─── */

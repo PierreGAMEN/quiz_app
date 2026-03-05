@@ -44,6 +44,10 @@ module.exports = (io) => {
   io.to(roomCode).emit('game:started', { phases: phases.rows }); // <- phases.rows et pas phases
 });
 
+socket.on('game:display_mode', ({ roomCode, enabled }) => {
+  io.to(roomCode).emit('game:display_mode_updated', { enabled });
+});
+
     // Admin passe à la question suivante
     socket.on('game:next_question', ({ roomCode, phaseId, questionId }) => {
       io.to(roomCode).emit('game:question', { phaseId, questionId });
@@ -137,7 +141,10 @@ socket.on('game:reveal_results', async ({ roomCode, questionId }) => {
     [roomCode]
   );
   io.to(roomCode).emit('room:players_updated', players.rows);
-  io.to(roomCode).emit('game:results_revealed', { answers: answers.rows });
+  io.to(roomCode).emit('game:results_revealed', { 
+  answers: answers.rows,
+  correctAnswer: correctOption.rows[0]?.text
+});
 });
 
     // Admin attribue des points manuellement (buzz ou correction)

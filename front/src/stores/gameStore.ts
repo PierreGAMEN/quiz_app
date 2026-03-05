@@ -19,36 +19,38 @@ export const useGameStore = defineStore("game", {
     playedQuestions: [] as number[],
     currentPhaseIndex: 0 as number,
     currentQuestionIndex: 0 as number,
+    displayMode: false as boolean,
+    correctAnswer: null as string | null,
   }),
 
-getters: {
-  nextQuestionData(state): { phaseId: number, questionId: number } | null {
-    const phases = state.phases
-    if (!phases.length) return null
+  getters: {
+    nextQuestionData(state): { phaseId: number; questionId: number } | null {
+      const phases = state.phases;
+      if (!phases.length) return null;
 
-    // Si pas de question courante, commence depuis le début
-    let pIdx = 0
-    let qIdx = 0
+      // Si pas de question courante, commence depuis le début
+      let pIdx = 0;
+      let qIdx = 0;
 
-    if (state.currentQuestion) {
-      pIdx = state.currentPhaseIndex
-      qIdx = state.currentQuestionIndex + 1
-    }
-
-    while (pIdx < phases.length) {
-      const questions = phases[pIdx].questions
-      while (qIdx < questions.length) {
-        if (!state.playedQuestions.includes(questions[qIdx].id)) {
-          return { phaseId: phases[pIdx].id, questionId: questions[qIdx].id }
-        }
-        qIdx++
+      if (state.currentQuestion) {
+        pIdx = state.currentPhaseIndex;
+        qIdx = state.currentQuestionIndex + 1;
       }
-      pIdx++
-      qIdx = 0
-    }
-    return null
-  }
-},
+
+      while (pIdx < phases.length) {
+        const questions = phases[pIdx].questions;
+        while (qIdx < questions.length) {
+          if (!state.playedQuestions.includes(questions[qIdx].id)) {
+            return { phaseId: phases[pIdx].id, questionId: questions[qIdx].id };
+          }
+          qIdx++;
+        }
+        pIdx++;
+        qIdx = 0;
+      }
+      return null;
+    },
+  },
 
   actions: {
     async createRoom(quiz_id: number) {
@@ -79,6 +81,11 @@ getters: {
       socket.off("game:finished");
       socket.off("game:answer_result");
       socket.off("game:results_revealed");
+      socket.off("game:display_mode_updated");
+
+      socket.on("game:display_mode_updated", ({ enabled }: any) => {
+        this.displayMode = enabled;
+      });
 
       socket.emit("room:join", {
         roomCode,
@@ -118,6 +125,7 @@ getters: {
           this.questionResolved = false;
           this.answerResult = null;
           this.resultsRevealed = false;
+          this.correctAnswer = null;
 
           // Mise à jour des index
           const pIdx = this.phases.findIndex((p: any) => p.id === phaseId);
@@ -137,6 +145,12 @@ getters: {
       socket.on("game:question_resolved", () => {
         this.questionResolved = true;
         this.buzzedPlayer = null;
+      });
+
+      socket.on("game:results_revealed", ({ correctAnswer }: any) => {
+        console.log("results_revealed reçu", correctAnswer);
+        this.resultsRevealed = true;
+        this.correctAnswer = correctAnswer;
       });
 
       socket.on("game:buzzed", ({ player }: any) => {
@@ -159,10 +173,6 @@ getters: {
         this.answerResult = { isCorrect, points };
       });
 
-      socket.on("game:results_revealed", () => {
-        this.resultsRevealed = true;
-      });
-
       socket.on("game:finished", ({ leaderboard }: any) => {
         this.players = leaderboard;
         this.status = "finished";
@@ -172,6 +182,10 @@ getters: {
 
     disconnectSocket() {
       socket.disconnect();
+    },
+
+    setDisplayMode(roomCode: string, enabled: boolean) {
+      socket.emit("game:display_mode", { roomCode, enabled });
     },
 
     startGame(roomCode: string) {
