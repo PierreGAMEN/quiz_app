@@ -1,38 +1,48 @@
 <template>
     <div class="admin-home">
-        <header>
-            <h1>🎯 Quiz App — Admin</h1>
-            <button @click="goToCreate">+ Nouveau quiz</button>
+
+        <header class="admin-header">
+            <div class="header-left">
+                <h1 class="admin-title">🎯 Quiz App</h1>
+                <span class="admin-subtitle">Panneau d'administration</span>
+            </div>
         </header>
 
-        <div v-if="quizStore.loading">Chargement...</div>
+        <main class="admin-main">
+            <button class="btn-create" @click="goToCreate">+ Nouveau quiz</button>
 
-        <div v-else-if="quizStore.quizzes.length === 0" class="empty">
-            Aucun quiz pour l'instant.
-        </div>
+            <div v-if="quizStore.loading" class="state-msg">Chargement...</div>
 
-        <ul v-else class="quiz-list">
-            <li v-for="quiz in quizStore.quizzes" :key="quiz.id" class="quiz-item">
-                <div class="quiz-info">
-                    <strong>{{ quiz.title }}</strong>
-                    <span>{{ quiz.description }}</span>
-                </div>
-                <div class="quiz-actions">
-                    <button @click="goToEdit(quiz.id)">✏️ Éditer</button>
-                    <button @click="startRoom(quiz.id)">▶️ Lancer</button>
-                    <button class="danger" @click="deleteQuiz(quiz.id)">🗑️ Supprimer</button>
-                </div>
-            </li>
-        </ul>
+            <div v-else-if="quizStore.quizzes.length === 0" class="state-msg">
+                Aucun quiz pour l'instant.
+            </div>
 
-        <div v-if="newRoomCode" class="room-created">
-            <p>Room créée ! Code à partager :</p>
-            <strong class="room-code">{{ newRoomCode }}</strong>
-            <button @click="goToRoom">Rejoindre en tant qu'admin</button>
-        </div>
-        <div style="margin-top: 60px; text-align: center; border-top: 1px solid #e5e7eb; padding-top: 20px;">
-            <button class="danger" @click="resetDb">🗑️ Vider la base de données</button>
-        </div>
+            <ul v-else class="quiz-list">
+                <li v-for="quiz in quizStore.quizzes" :key="quiz.id" class="quiz-item">
+                    <div class="quiz-info">
+                        <strong class="quiz-title">{{ quiz.title }}</strong>
+                        <span class="quiz-desc">{{ quiz.description }}</span>
+                    </div>
+                    <div class="quiz-actions">
+                        <button class="btn-icon" title="Éditer" @click="goToEdit(quiz.id)">✏️</button>
+                        <button class="btn-launch" @click="startRoom(quiz.id)">▶️ Lancer</button>
+                        <button class="btn-icon danger" title="Supprimer" @click="deleteQuiz(quiz.id)">🗑️</button>
+                    </div>
+                </li>
+            </ul>
+
+            <div v-if="newRoomCode" class="room-created">
+                <span class="room-label">CODE DE LA ROOM</span>
+                <strong class="room-code">{{ newRoomCode }}</strong>
+                <button class="btn-join" @click="goToRoom">Rejoindre en tant qu'admin →</button>
+            </div>
+
+        </main>
+
+        <footer class="admin-footer">
+            <button class="btn-reset" @click="resetDb">🗑️ Vider la base de données</button>
+        </footer>
+
     </div>
 </template>
 
@@ -48,35 +58,21 @@ const quizStore = useQuizStore()
 const gameStore = useGameStore()
 const newRoomCode = ref<string | null>(null)
 
+onMounted(() => quizStore.fetchAll())
 
-onMounted(() => {
-    quizStore.fetchAll()
-})
-
-function goToCreate() {
-    router.push('/admin/quiz/create')
-}
-
-function goToEdit(id: number) {
-    router.push(`/admin/quiz/${id}/edit`)
-}
+function goToCreate() { router.push('/admin/quiz/create') }
+function goToEdit(id: number) { router.push(`/admin/quiz/${id}/edit`) }
+function goToRoom() { router.push(`/room/${newRoomCode.value}?admin=true`) }
 
 async function startRoom(quizId: number) {
     const room = await gameStore.createRoom(quizId)
     newRoomCode.value = room.code
 }
 
-function goToRoom() {
-    router.push(`/room/${newRoomCode.value}?admin=true`)
-}
-
 async function deleteQuiz(id: number) {
-    if (confirm('Supprimer ce quiz ?')) {
-        await quizStore.delete(id)
-    }
+    if (confirm('Supprimer ce quiz ?')) await quizStore.delete(id)
 }
 
-// A SUPPRIMER A LA FIN DU PROJET
 async function resetDb() {
     if (confirm('Vider toute la base de données ?')) {
         await api.delete('/quiz/reset/all')
@@ -87,87 +83,242 @@ async function resetDb() {
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css2?family=Righteous&family=Nunito:wght@400;600;700;800&display=swap');
+
 .admin-home {
-    max-width: 800px;
-    margin: 40px auto;
-    padding: 0 20px;
-    font-family: sans-serif;
+    min-height: 100vh;
+    background: #f8fafc;
+    font-family: 'Nunito', sans-serif;
+    color: #1e3a8a;
+    display: flex;
+    flex-direction: column;
 }
 
-header {
+/* ─── HEADER ─── */
+.admin-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 30px;
+    padding: 24px 40px;
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
 }
 
-button {
-    padding: 8px 16px;
-    cursor: pointer;
-    border: none;
-    border-radius: 6px;
-    background: #4f46e5;
+.header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.admin-title {
+    font-family: 'Righteous', sans-serif;
+    font-size: 22px;
+    color: #1e3a8a;
+    margin: 0;
+    letter-spacing: 1px;
+}
+
+.admin-subtitle {
+    font-size: 12px;
+    color: #94a3b8;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.btn-create {
+    padding: 10px 20px;
+    background: #1d4ed8;
     color: white;
+    border: none;
+    border-radius: 10px;
     font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Nunito', sans-serif;
+    margin-bottom: 20px;
 }
 
-button.danger {
-    background: #ef4444;
+.btn-create:hover {
+    background: #1e40af;
+    transform: translateY(-1px);
 }
 
+/* ─── MAIN ─── */
+.admin-main {
+    flex: 1;
+    max-width: 720px;
+    width: 100%;
+    margin: 40px auto;
+    padding: 0 24px;
+}
+
+.state-msg {
+    text-align: center;
+    color: #94a3b8;
+    font-size: 15px;
+    margin-top: 60px;
+}
+
+/* ─── LISTE ─── */
 .quiz-list {
     list-style: none;
     padding: 0;
+    margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
 }
 
 .quiz-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
+    padding: 18px 22px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    transition: all 0.2s;
+}
+
+.quiz-item:hover {
+    border-color: #bfdbfe;
+    box-shadow: 0 2px 12px rgba(29, 78, 216, 0.08);
 }
 
 .quiz-info {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
 }
 
-.quiz-info span {
+.quiz-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: #1e3a8a;
+}
+
+.quiz-desc {
     font-size: 13px;
-    color: #6b7280;
+    color: #94a3b8;
 }
 
 .quiz-actions {
     display: flex;
+    align-items: center;
     gap: 8px;
 }
 
-.room-created {
-    margin-top: 30px;
-    padding: 20px;
-    background: #f0fdf4;
-    border: 1px solid #86efac;
+.btn-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
     border-radius: 8px;
-    text-align: center;
+    cursor: pointer;
+    font-size: 15px;
+    transition: all 0.2s;
+}
+
+.btn-icon:hover {
+    background: #e2e8f0;
+}
+
+.btn-icon.danger:hover {
+    background: #fff1f2;
+    border-color: #fecdd3;
+}
+
+.btn-launch {
+    padding: 8px 16px;
+    background: #1d4ed8;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Nunito', sans-serif;
+}
+
+.btn-launch:hover {
+    background: #1e40af;
+}
+
+/* ─── ROOM CRÉÉE ─── */
+.room-created {
+    margin-top: 24px;
+    padding: 24px;
+    background: white;
+    border: 1px solid #bfdbfe;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.room-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: #93c5fd;
+    font-weight: 800;
 }
 
 .room-code {
-    display: block;
-    font-size: 36px;
-    letter-spacing: 8px;
-    margin: 10px 0;
-    color: #16a34a;
+    font-family: 'Righteous', sans-serif;
+    font-size: 48px;
+    letter-spacing: 10px;
+    color: #1d4ed8;
+    line-height: 1;
 }
 
-.empty {
-    color: #6b7280;
-    text-align: center;
-    margin-top: 40px;
+.btn-join {
+    padding: 10px 24px;
+    background: #1d4ed8;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Nunito', sans-serif;
+}
+
+.btn-join:hover {
+    background: #1e40af;
+    transform: translateY(-1px);
+}
+
+/* ─── FOOTER ─── */
+.admin-footer {
+    padding: 20px 40px;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: center;
+}
+
+.btn-reset {
+    padding: 8px 16px;
+    background: transparent;
+    color: #cbd5e1;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Nunito', sans-serif;
+}
+
+.btn-reset:hover {
+    color: #ef4444;
+    border-color: #fecdd3;
+    background: #fff1f2;
 }
 </style>
