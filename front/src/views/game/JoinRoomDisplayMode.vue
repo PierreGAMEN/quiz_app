@@ -1,78 +1,79 @@
 <template>
-    <div class="home">
-        <!-- Confettis animés -->
+    <div class="join-room">
+        <!-- Confettis -->
         <div class="confetti-layer">
-            <span v-for="i in 30" :key="i" class="confetti" :style="confettiStyle(i)"></span>
+            <span v-for="i in 20" :key="i" class="confetti" :style="confettiStyle(i)"></span>
         </div>
 
-        <!-- Décorations géométriques -->
         <div class="deco deco-circle-1"></div>
         <div class="deco deco-circle-2"></div>
-        <div class="deco deco-star-1">⭐</div>
-        <div class="deco deco-star-2">🏅</div>
-        <div class="deco deco-star-3">✨</div>
 
-        <div class="home-content">
-            <!-- Badge anniversaire -->
-            <div class="birthday-badge">
-                🎂 30 ANS — ÉDITION SPÉCIALE
-            </div>
+        <div class="join-content">
+            <button class="btn-back" @click="router.push('/')">← Retour</button>
 
-            <!-- Titre principal -->
-            <div class="title-block">
-                <h1 class="home-title">
-                    <span class="title-line-1">LE GRAND</span>
-                    <span class="title-line-2">QUIZ</span>
-                    <span class="title-line-3">DE <span class="name-highlight">MARGAUX</span></span>
-                </h1>
-            </div>
+            <div class="birthday-badge">🎂 30 ANS — ÉDITION SPÉCIALE</div>
 
-            <!-- Pictos sport -->
+            <h1 class="join-title">
+                <span class="title-small">REJOINDRE</span>
+                <span class="title-big">LA FÊTE</span>
+            </h1>
+
             <div class="sport-icons">
                 <span class="sport-icon" style="--d: 0s">🤸‍♀️</span>
                 <span class="sport-icon" style="--d: 0.2s">🧗‍♀️</span>
                 <span class="sport-icon" style="--d: 0.4s">⛷️</span>
             </div>
 
-            <!-- Sous-titre -->
-            <p class="home-sub">
-                Es-tu vraiment son meilleur ami·e ?<br>
-                <span class="sub-accent">Prouve-le !</span>
-            </p>
+            <div class="join-card">
+                <div class="field">
+                    <label>Code de la room</label>
+                    <input v-model="code" placeholder="ABC123" maxlength="10" class="input-code"
+                        @input="code = code.toUpperCase()" />
+                </div>
 
-            <!-- Actions -->
-            <div class="home-actions">
-                <button class="btn-join" @click="router.push('/join')">
-                    🎮 Rejoindre la fête
-                </button>
-                <button class="btn-admin" @click="router.push('/admin')">
-                    ⚙️ Admin
-                </button>
-                <button class="btn-admin" @click="router.push('/display')">
-                    ⚙️ Mode affichage
+                <p v-if="error" class="error">⚠️ {{ error }}</p>
+
+                <button class="btn-join" :disabled="!code || loading" @click="join">
+                    <span v-if="loading">Connexion en cours...</span>
+                    <span v-else>🎉 C'est parti !</span>
                 </button>
             </div>
 
-            <!-- Petite mention -->
             <p class="home-mention">Créé avec ❤️ pour ses 30 ans</p>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
+const code = ref('')
+const error = ref('')
+const loading = ref(false)
+
+async function join() {
+    error.value = ''
+    loading.value = true
+    try {
+        router.push(`/room/${code.value}?display=true`)
+    } catch (err: any) {
+        error.value = err.response?.data?.error || 'Room introuvable, vérifie le code !'
+    } finally {
+        loading.value = false
+    }
+}
+
 function confettiStyle(i: number) {
     const colors = ['#1d4ed8', '#3b82f6', '#fbbf24', '#f472b6', '#34d399', '#f87171', '#a78bfa', '#ffffff']
     const color = colors[i % colors.length]
-    const left = (i * 3.4) % 100
-    const delay = (i * 0.15) % 4
+    const left = (i * 5.1) % 100
+    const delay = (i * 0.2) % 4
     const duration = 3 + (i % 3)
     const size = 6 + (i % 8)
     const rotation = i * 47
-
     return {
         '--color': color,
         left: `${left}%`,
@@ -88,7 +89,7 @@ function confettiStyle(i: number) {
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Righteous&family=Nunito:wght@400;600;700;800&display=swap');
 
-.home {
+.join-room {
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -100,7 +101,6 @@ function confettiStyle(i: number) {
     padding: 24px;
 }
 
-/* ─── CONFETTIS ─── */
 .confetti-layer {
     position: absolute;
     inset: 0;
@@ -129,7 +129,6 @@ function confettiStyle(i: number) {
     }
 }
 
-/* ─── DÉCORATIONS ─── */
 .deco {
     position: absolute;
     pointer-events: none;
@@ -139,7 +138,7 @@ function confettiStyle(i: number) {
     width: 300px;
     height: 300px;
     border-radius: 50%;
-    border: 3px solid rgba(29, 78, 216, 0.15);
+    border: 3px solid rgba(29, 78, 216, 0.1);
     top: -80px;
     right: -80px;
     animation: spin 20s linear infinite;
@@ -149,7 +148,7 @@ function confettiStyle(i: number) {
     width: 200px;
     height: 200px;
     border-radius: 50%;
-    border: 2px dashed rgba(29, 78, 216, 0.1);
+    border: 2px dashed rgba(29, 78, 216, 0.08);
     bottom: -60px;
     left: -60px;
     animation: spin 15s linear infinite reverse;
@@ -165,50 +164,32 @@ function confettiStyle(i: number) {
     }
 }
 
-.deco-star-1 {
-    font-size: 32px;
-    top: 12%;
-    left: 8%;
-    animation: floatStar 3s ease-in-out infinite;
-}
-
-.deco-star-2 {
-    font-size: 28px;
-    top: 20%;
-    right: 10%;
-    animation: floatStar 3.5s ease-in-out infinite 0.5s;
-}
-
-.deco-star-3 {
-    font-size: 24px;
-    bottom: 20%;
-    right: 8%;
-    animation: floatStar 2.8s ease-in-out infinite 1s;
-}
-
-@keyframes floatStar {
-
-    0%,
-    100% {
-        transform: translateY(0) rotate(-5deg);
-    }
-
-    50% {
-        transform: translateY(-12px) rotate(5deg);
-    }
-}
-
-/* ─── CONTENU ─── */
-.home-content {
+.join-content {
     position: relative;
     z-index: 1;
-    text-align: center;
     width: 100%;
-    max-width: 440px;
+    max-width: 420px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
+    gap: 16px;
+}
+
+.btn-back {
+    align-self: flex-start;
+    background: transparent;
+    border: none;
+    color: #93c5fd;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0;
+    font-family: 'Nunito', sans-serif;
+    transition: color 0.2s;
+}
+
+.btn-back:hover {
+    color: #1d4ed8;
 }
 
 .birthday-badge {
@@ -235,49 +216,31 @@ function confettiStyle(i: number) {
     }
 }
 
-/* ─── TITRE ─── */
-.title-block {
-    animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
-}
-
-.home-title {
+.join-title {
     margin: 0;
     display: flex;
     flex-direction: column;
+    align-items: center;
     line-height: 1;
-    gap: 2px;
+    gap: 0;
+    animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
 }
 
-.title-line-1 {
+.title-small {
     font-family: 'Righteous', sans-serif;
-    font-size: clamp(20px, 5vw, 28px);
-    color: #1d4ed8;
+    font-size: clamp(18px, 4vw, 24px);
+    color: #3b82f6;
     letter-spacing: 4px;
 }
 
-.title-line-2 {
+.title-big {
     font-family: 'Righteous', sans-serif;
-    font-size: clamp(72px, 20vw, 110px);
+    font-size: clamp(56px, 15vw, 80px);
     color: #1e3a8a;
-    line-height: 0.9;
-    text-shadow: 4px 4px 0px rgba(29, 78, 216, 0.2);
+    text-shadow: 3px 3px 0px rgba(29, 78, 216, 0.15);
+    line-height: 0.95;
 }
 
-.title-line-3 {
-    font-family: 'Righteous', sans-serif;
-    font-size: clamp(22px, 5vw, 30px);
-    color: #1d4ed8;
-    letter-spacing: 3px;
-}
-
-.name-highlight {
-    background: linear-gradient(135deg, #f59e0b, #f472b6);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-size: clamp(28px, 7vw, 40px);
-}
-
-/* ─── SPORT ICONS ─── */
 .sport-icons {
     display: flex;
     gap: 16px;
@@ -285,7 +248,7 @@ function confettiStyle(i: number) {
 }
 
 .sport-icon {
-    font-size: 32px;
+    font-size: 28px;
     animation: bounce 2s ease-in-out infinite;
     animation-delay: var(--d);
 }
@@ -302,29 +265,61 @@ function confettiStyle(i: number) {
     }
 }
 
-/* ─── SOUS-TITRE ─── */
-.home-sub {
-    color: #3b82f6;
-    font-size: 17px;
-    font-weight: 600;
-    margin: 0;
-    line-height: 1.6;
+.join-card {
+    width: 100%;
+    background: white;
+    border: 2px solid rgba(29, 78, 216, 0.1);
+    border-radius: 24px;
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: 0 8px 32px rgba(29, 78, 216, 0.1);
     animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both;
 }
 
-.sub-accent {
-    font-size: 20px;
-    font-weight: 800;
-    color: #1d4ed8;
-}
-
-/* ─── ACTIONS ─── */
-.home-actions {
+.field {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    width: 100%;
-    animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s both;
+    gap: 6px;
+}
+
+.field label {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: #93c5fd;
+    text-transform: uppercase;
+}
+
+input {
+    padding: 14px 16px;
+    background: #f0f7ff;
+    border: 2px solid #bfdbfe;
+    border-radius: 12px;
+    color: #1e3a8a;
+    font-size: 15px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+}
+
+input::placeholder {
+    color: #bfdbfe;
+}
+
+input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.input-code {
+    font-family: 'Righteous', sans-serif;
+    font-size: 28px;
+    letter-spacing: 8px;
+    text-align: center;
+    color: #1d4ed8;
 }
 
 .btn-join {
@@ -340,42 +335,40 @@ function confettiStyle(i: number) {
     transition: all 0.2s;
     box-shadow: 0 6px 24px rgba(29, 78, 216, 0.35);
     font-family: 'Nunito', sans-serif;
-    letter-spacing: 0.5px;
+    margin-top: 4px;
 }
 
-.btn-join:hover {
+.btn-join:hover:not(:disabled) {
     transform: translateY(-3px);
     box-shadow: 0 10px 32px rgba(29, 78, 216, 0.45);
 }
 
-.btn-join:active {
+.btn-join:active:not(:disabled) {
     transform: translateY(0);
 }
 
-.btn-admin {
-    width: 100%;
-    padding: 14px;
-    background: rgba(29, 78, 216, 0.08);
-    color: #3b82f6;
-    border: 2px solid rgba(29, 78, 216, 0.2);
-    border-radius: 16px;
-    font-size: 15px;
+.btn-join:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.error {
+    color: #ef4444;
+    font-size: 13px;
     font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-family: 'Nunito', sans-serif;
+    margin: 0;
+    text-align: center;
+    background: #fef2f2;
+    border: 2px solid #fecaca;
+    border-radius: 10px;
+    padding: 10px;
 }
 
-.btn-admin:hover {
-    background: rgba(29, 78, 216, 0.14);
-    border-color: rgba(29, 78, 216, 0.4);
-}
-
-/* ─── MENTION ─── */
 .home-mention {
     color: #93c5fd;
     font-size: 13px;
+    font-weight: 600;
     margin: 0;
-    animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s both;
+    animation: popIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s both;
 }
 </style>
