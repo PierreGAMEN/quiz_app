@@ -31,13 +31,15 @@
                 🎉 Bonne réponse trouvée !
             </div>
             <div v-else class="display-waiting-buzz">
-                <span class="pulse-dot"></span> En attente d'un buzz...
+                <PulseDot /> En attente d'un buzz...
             </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
+import PulseDot from '../../../components/common/PulseDot.vue';
+
 const letters = ['A', 'B', 'C', 'D']
 
 defineProps<{
@@ -51,8 +53,6 @@ defineProps<{
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Righteous&family=Nunito:wght@400;600;700;800&display=swap');
-
 .display-card {
     width: 100%;
     min-height: 100vh;

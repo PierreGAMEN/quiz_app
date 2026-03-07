@@ -41,7 +41,7 @@
             </button>
 
             <div v-else class="waiting-buzz">
-                <span class="pulse-dot"></span> En attente d'un buzz...
+                <PulseDot /> En attente d'un buzz...
             </div>
         </div>
 
@@ -105,6 +105,8 @@
 </template>
 
 <script setup lang="ts">
+import PulseDot from '../../../components/common/PulseDot.vue';
+
 const baseUrl = import.meta.env.BASE_URL
 const letters = ['A', 'B', 'C', 'D']
 
@@ -137,8 +139,6 @@ function getPlayerName(playerId: number) {
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Righteous&family=Nunito:wght@400;600;700;800&display=swap');
-
 .question-card {
     width: 100%;
     max-width: 680px;

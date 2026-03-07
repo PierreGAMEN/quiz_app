@@ -7,18 +7,10 @@
       <span v-else class="current-q muted">Prêt à lancer ?</span>
     </div>
     <div class="nav-actions">
-      <button
-        class="btn-display-toggle"
-        :class="{ active: displayMode }"
-        @click="$emit('toggleDisplay')"
-      >
+      <button class="btn-display-toggle" :class="{ active: displayMode }" @click="$emit('toggleDisplay')">
         {{ displayMode ? '📺 ON' : '📺 OFF' }}
       </button>
-      <button
-        class="btn-next"
-        :disabled="!hasNextQuestion"
-        @click="$emit('next')"
-      >
+      <button class="btn-next" :disabled="!hasNextQuestion" @click="$emit('next')">
         {{ currentQuestion ? '➡️ Suivante' : '▶️ Lancer !' }}
       </button>
       <button class="btn-end" @click="$emit('end')">🏁</button>
@@ -42,24 +34,27 @@ defineEmits<{
 </script>
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Righteous&family=Nunito:wght@400;600;700;800&display=swap');
-
 .admin-nav {
   position: fixed;
-  bottom: 0; left: 0; right: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
   display: flex;
   gap: 8px;
   align-items: center;
-  background: rgba(255,255,255,0.95);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(12px);
-  border-top: 2px solid rgba(29,78,216,0.1);
+  border-top: 2px solid rgba(29, 78, 216, 0.1);
   padding: 12px 16px;
   padding-bottom: calc(12px + env(safe-area-inset-bottom));
   z-index: 100;
-  box-shadow: 0 -4px 20px rgba(29,78,216,0.08);
+  box-shadow: 0 -4px 20px rgba(29, 78, 216, 0.08);
 }
 
-.nav-info { flex: 1; min-width: 0; }
+.nav-info {
+  flex: 1;
+  min-width: 0;
+}
 
 .current-q {
   font-size: 12px;
@@ -71,8 +66,15 @@ defineEmits<{
   display: block;
 }
 
-.current-q.muted { color: #93c5fd; }
-.nav-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.current-q.muted {
+  color: #93c5fd;
+}
+
+.nav-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
 
 .btn-display-toggle {
   padding: 10px 14px;
@@ -92,7 +94,7 @@ defineEmits<{
   background: #1d4ed8;
   color: white;
   border-color: #1d4ed8;
-  box-shadow: 0 4px 12px rgba(29,78,216,0.3);
+  box-shadow: 0 4px 12px rgba(29, 78, 216, 0.3);
 }
 
 .btn-next {
@@ -107,11 +109,17 @@ defineEmits<{
   transition: all 0.2s;
   white-space: nowrap;
   font-family: 'Nunito', sans-serif;
-  box-shadow: 0 4px 12px rgba(29,78,216,0.3);
+  box-shadow: 0 4px 12px rgba(29, 78, 216, 0.3);
 }
 
-.btn-next:disabled { opacity: 0.3; cursor: not-allowed; }
-.btn-next:hover:not(:disabled) { transform: translateY(-1px); }
+.btn-next:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.btn-next:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
 
 .btn-end {
   padding: 10px 14px;
@@ -124,5 +132,7 @@ defineEmits<{
   transition: all 0.2s;
 }
 
-.btn-end:hover { background: #ffe4e6; }
+.btn-end:hover {
+  background: #ffe4e6;
+}
 </style>
