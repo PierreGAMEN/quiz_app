@@ -1,7 +1,6 @@
 <template>
   <div class="lobby">
-    <div class="deco deco-circle-1"></div>
-    <div class="deco deco-circle-2"></div>
+    <DecoCircles />
     <div class="deco deco-star-1">⭐</div>
     <div class="deco deco-star-2">🎉</div>
 
@@ -48,6 +47,7 @@
 
 <script setup lang="ts">
 import BirthdayBadge from '../../../components/common/BirthdayBadge.vue';
+import DecoCircles from '../../../components/common/DecoCircles.vue';
 import PulseDot from '../../../components/common/PulseDot.vue';
 import SportIcons from '../../../components/common/SportIcons.vue';
 
@@ -77,26 +77,6 @@ defineEmits<{
   position: absolute;
   pointer-events: none;
   z-index: 0;
-}
-
-.deco-circle-1 {
-  width: 350px;
-  height: 350px;
-  border-radius: 50%;
-  border: 3px solid rgba(29, 78, 216, 0.1);
-  top: -100px;
-  right: -100px;
-  animation: spin 25s linear infinite;
-}
-
-.deco-circle-2 {
-  width: 220px;
-  height: 220px;
-  border-radius: 50%;
-  border: 2px dashed rgba(29, 78, 216, 0.08);
-  bottom: -60px;
-  left: -60px;
-  animation: spin 18s linear infinite reverse;
 }
 
 .deco-star-1 {

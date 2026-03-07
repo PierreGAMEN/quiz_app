@@ -21,22 +21,25 @@
                     <QuestionDisplay v-if="isDisplay" :current-question="gameStore.currentQuestion"
                         :current-phase="gameStore.currentPhase" :buzzed-player="gameStore.buzzedPlayer"
                         :question-resolved="gameStore.questionResolved" :results-revealed="gameStore.resultsRevealed"
-                        :correct-answer="gameStore.correctAnswer" />
+                        :correct-answer="gameStore.correctAnswer" :show-scores="gameStore.showScores"
+                        :players="gameStore.players" />
                     <QuestionCard v-else :current-question="gameStore.currentQuestion"
                         :current-phase="gameStore.currentPhase" :is-admin="isAdmin"
                         :display-mode="gameStore.displayMode" :buzzed-player="gameStore.buzzedPlayer"
                         :question-resolved="gameStore.questionResolved" :answer-result="gameStore.answerResult"
                         :results-revealed="gameStore.resultsRevealed" :correct-answer="gameStore.correctAnswer"
                         :answers="gameStore.answers" :players="gameStore.players" :selected-answer="selectedAnswer"
-                        :has-answered="hasAnswered" @buzz="buzz" @award-points="handleAwardPoints"
-                        @select-option="selectOption" @reveal-results="revealResults" />
+                        :has-answered="hasAnswered" :show-scores="gameStore.showScores" @buzz="buzz"
+                        @award-points="handleAwardPoints" @select-option="selectOption"
+                        @reveal-results="revealResults" />
                 </div>
             </div>
 
             <GameAdminNav v-if="isAdmin" :current-question="gameStore.currentQuestion"
                 :current-phase="gameStore.currentPhase" :display-mode="gameStore.displayMode"
-                :has-next-question="!!gameStore.nextQuestionData" @toggle-display="toggleDisplayMode"
-                @next="nextQuestion" @end="endGame" />
+                :has-next-question="!!gameStore.nextQuestionData" :show-scores="gameStore.showScores"
+                @toggle-display="toggleDisplayMode" @toggle-scores="toggleShowScores" @next="nextQuestion"
+                @end="endGame" />
         </div>
 
         <GameFinished v-else-if="gameStore.status === 'finished'" :players="gameStore.players" :is-admin="isAdmin"
@@ -127,6 +130,10 @@ function revealResults() {
     gameStore.revealResults(roomCode.value, gameStore.currentQuestion.id)
 }
 
+function toggleShowScores() {
+    gameStore.setShowScores(roomCode.value, !gameStore.showScores)
+}
+
 function endGame() {
     if (confirm('Terminer le quiz ?')) gameStore.endGame(roomCode.value)
 }
@@ -142,6 +149,7 @@ function endGame() {
     color: #1e3a8a;
     position: relative;
 }
+
 @keyframes fall {
     0% {
         transform: translateY(-20px) rotate(0deg);

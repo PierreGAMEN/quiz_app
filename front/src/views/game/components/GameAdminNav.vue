@@ -14,6 +14,9 @@
         {{ currentQuestion ? '➡️ Suivante' : '▶️ Lancer !' }}
       </button>
       <button class="btn-end" @click="$emit('end')">🏁</button>
+      <button class="btn-scores-toggle" :class="{ active: showScores }" @click="$emit('toggleScores')">
+        📊
+      </button>
     </div>
   </div>
 </template>
@@ -24,12 +27,14 @@ defineProps<{
   currentPhase: any
   displayMode: boolean
   hasNextQuestion: boolean
+  showScores: boolean
 }>()
 
 defineEmits<{
   (e: 'toggleDisplay'): void
   (e: 'next'): void
   (e: 'end'): void
+  (e: 'toggleScores'): void
 }>()
 </script>
 
@@ -134,5 +139,24 @@ defineEmits<{
 
 .btn-end:hover {
   background: #ffe4e6;
+}
+
+.btn-scores-toggle {
+  padding: 10px 14px;
+  background: #f0f7ff;
+  color: #93c5fd;
+  border: 2px solid #bfdbfe;
+  border-radius: 10px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Nunito', sans-serif;
+}
+
+.btn-scores-toggle.active {
+  background: #1d4ed8;
+  color: white;
+  border-color: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(29, 78, 216, 0.3);
 }
 </style>

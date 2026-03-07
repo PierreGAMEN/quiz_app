@@ -2,6 +2,8 @@
     <div class="question-card"
         :class="{ 'card-buzz': currentPhase?.type === 'buzz', 'card-qcm': currentPhase?.type === 'all_answer' }">
 
+        <ScoreBoard v-if="showScores" :players="players" />
+        <template v-else>
         <!-- Badges + question — masqués sur téléphone joueur en mode display -->
         <div v-if="!displayMode || isAdmin" class="question-badges">
             <span class="badge-type">{{ currentPhase?.type === 'buzz' ? '🔔 BUZZ' : '📝 QCM' }}</span>
@@ -101,11 +103,13 @@
                 </button>
             </div>
         </div>
+        </template>
     </div>
 </template>
 
 <script setup lang="ts">
-import PulseDot from '../../../components/common/PulseDot.vue';
+import PulseDot from '../../../components/common/PulseDot.vue'
+import ScoreBoard from '../../../components/common/ScoreBoard.vue'
 
 const baseUrl = import.meta.env.BASE_URL
 const letters = ['A', 'B', 'C', 'D']
@@ -124,6 +128,7 @@ const props = defineProps<{
     players: any[]
     selectedAnswer: string
     hasAnswered: boolean
+    showScores: boolean
 }>()
 
 defineEmits<{

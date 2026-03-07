@@ -1,44 +1,51 @@
 <template>
     <div class="display-card">
-        <div class="display-phase">
-            {{ currentPhase?.type === 'buzz' ? '🔔' : '📝' }}
-            {{ currentPhase?.title }}
-        </div>
 
-        <h2 class="display-question">{{ currentQuestion.text }}</h2>
+        <ScoreBoard v-if="showScores" :players="players" />
 
-        <!-- QCM -->
-        <div v-if="currentPhase?.type === 'all_answer'">
-            <div v-if="resultsRevealed && correctAnswer" class="display-correct-answer">
-                ✅ {{ correctAnswer }}
+        <template v-else>
+            <div class="display-phase">
+                {{ currentPhase?.type === 'buzz' ? '🔔' : '📝' }}
+                {{ currentPhase?.title }}
             </div>
-            <div v-else class="display-options">
-                <div v-for="(option, i) in currentQuestion.options" :key="option.id" class="display-option"
-                    :class="`display-option-${i}`">
-                    <span class="option-letter">{{ letters[i as number] }}</span>
-                    <span class="display-option-text">{{ option.text }}</span>
+
+            <h2 class="display-question">{{ currentQuestion.text }}</h2>
+
+            <!-- QCM -->
+            <div v-if="currentPhase?.type === 'all_answer'">
+                <div v-if="resultsRevealed && correctAnswer" class="display-correct-answer">
+                    ✅ {{ correctAnswer }}
+                </div>
+                <div v-else class="display-options">
+                    <div v-for="(option, i) in currentQuestion.options" :key="option.id" class="display-option"
+                        :class="`display-option-${i}`">
+                        <span class="option-letter">{{ letters[i as number] }}</span>
+                        <span class="display-option-text">{{ option.text }}</span>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Buzz -->
-        <div v-else-if="currentPhase?.type === 'buzz'" class="display-buzz">
-            <div v-if="buzzedPlayer" class="display-buzzed">
-                <div class="display-buzzed-name">{{ buzzedPlayer.name }}</div>
-                <div class="display-buzzed-label">A BUZZÉ ! 🔔</div>
+            <!-- Buzz -->
+            <div v-else-if="currentPhase?.type === 'buzz'" class="display-buzz">
+                <div v-if="buzzedPlayer" class="display-buzzed">
+                    <div class="display-buzzed-name">{{ buzzedPlayer.name }}</div>
+                    <div class="display-buzzed-label">A BUZZÉ ! 🔔</div>
+                </div>
+                <div v-else-if="questionResolved" class="display-resolved">
+                    🎉 Bonne réponse trouvée !
+                </div>
+                <div v-else class="display-waiting-buzz">
+                    <PulseDot /> En attente d'un buzz...
+                </div>
             </div>
-            <div v-else-if="questionResolved" class="display-resolved">
-                🎉 Bonne réponse trouvée !
-            </div>
-            <div v-else class="display-waiting-buzz">
-                <PulseDot /> En attente d'un buzz...
-            </div>
-        </div>
+        </template>
+
     </div>
 </template>
 
 <script setup lang="ts">
-import PulseDot from '../../../components/common/PulseDot.vue';
+import PulseDot from '../../../components/common/PulseDot.vue'
+import ScoreBoard from '../../../components/common/ScoreBoard.vue'
 
 const letters = ['A', 'B', 'C', 'D']
 
@@ -49,6 +56,8 @@ defineProps<{
     questionResolved: boolean
     resultsRevealed: boolean
     correctAnswer: string | null
+    showScores: boolean
+    players: any[]
 }>()
 </script>
 

@@ -21,6 +21,7 @@ export const useGameStore = defineStore("game", {
     currentQuestionIndex: 0 as number,
     displayMode: false as boolean,
     correctAnswer: null as string | null,
+    showScores: false as boolean,
   }),
 
   getters: {
@@ -82,6 +83,11 @@ export const useGameStore = defineStore("game", {
       socket.off("game:answer_result");
       socket.off("game:results_revealed");
       socket.off("game:display_mode_updated");
+      socket.off("game:show_scores_updated");
+
+      socket.on("game:show_scores_updated", ({ enabled }: any) => {
+        this.showScores = enabled;
+      });
 
       socket.on("game:display_mode_updated", ({ enabled }: any) => {
         this.displayMode = enabled;
@@ -182,6 +188,10 @@ export const useGameStore = defineStore("game", {
 
     disconnectSocket() {
       socket.disconnect();
+    },
+
+    setShowScores(roomCode: string, enabled: boolean) {
+      socket.emit("game:show_scores", { roomCode, enabled });
     },
 
     setDisplayMode(roomCode: string, enabled: boolean) {

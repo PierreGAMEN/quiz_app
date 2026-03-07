@@ -48,6 +48,10 @@ socket.on('game:display_mode', ({ roomCode, enabled }) => {
   io.to(roomCode).emit('game:display_mode_updated', { enabled });
 });
 
+socket.on('game:show_scores', ({ roomCode, enabled }) => {
+  io.to(roomCode).emit('game:show_scores_updated', { enabled });
+});
+
     // Admin passe à la question suivante
     socket.on('game:next_question', ({ roomCode, phaseId, questionId }) => {
       io.to(roomCode).emit('game:question', { phaseId, questionId });
