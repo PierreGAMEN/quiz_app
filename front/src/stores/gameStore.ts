@@ -22,6 +22,7 @@ export const useGameStore = defineStore("game", {
     displayMode: false as boolean,
     correctAnswer: null as string | null,
     showScores: false as boolean,
+    lastBuzzedPlayerId: null as number | null,
   }),
 
   getters: {
@@ -132,6 +133,7 @@ export const useGameStore = defineStore("game", {
           this.answerResult = null;
           this.resultsRevealed = false;
           this.correctAnswer = null;
+          this.lastBuzzedPlayerId = null;
 
           // Mise à jour des index
           const pIdx = this.phases.findIndex((p: any) => p.id === phaseId);
@@ -161,6 +163,7 @@ export const useGameStore = defineStore("game", {
 
       socket.on("game:buzzed", ({ player }: any) => {
         this.buzzedPlayer = player;
+        this.lastBuzzedPlayerId = player.id;
       });
 
       socket.on("game:buzz_reset", () => {

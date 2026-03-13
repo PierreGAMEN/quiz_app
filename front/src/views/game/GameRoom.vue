@@ -29,7 +29,9 @@
                         :question-resolved="gameStore.questionResolved" :answer-result="gameStore.answerResult"
                         :results-revealed="gameStore.resultsRevealed" :correct-answer="gameStore.correctAnswer"
                         :answers="gameStore.answers" :players="gameStore.players" :selected-answer="selectedAnswer"
-                        :has-answered="hasAnswered" :show-scores="gameStore.showScores" @buzz="buzz"
+                        :has-answered="hasAnswered" :show-scores="gameStore.showScores"
+                        :current-player-id="gameStore.player?.id ?? null"
+                        :last-buzzed-player-id="gameStore.lastBuzzedPlayerId" @buzz="buzz"
                         @award-points="handleAwardPoints" @select-option="selectOption"
                         @reveal-results="revealResults" />
                 </div>

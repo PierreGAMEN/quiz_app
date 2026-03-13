@@ -4,115 +4,131 @@
 
         <ScoreBoard v-if="showScores" :players="players" />
         <template v-else>
-        <!-- Badges + question — masqués sur téléphone joueur en mode display -->
-        <div v-if="!displayMode || isAdmin" class="question-badges">
-            <span class="badge-type">{{ currentPhase?.type === 'buzz' ? '🔔 BUZZ' : '📝 QCM' }}</span>
-            <span class="badge-pts">⭐ {{ currentQuestion.points }} PT{{ currentQuestion.points > 1 ? 'S' : '' }}</span>
-            <span v-if="currentQuestion.time_limit" class="badge-timer">⏱ {{ currentQuestion.time_limit }}s</span>
-        </div>
+            <!-- Badges + question — masqués sur téléphone joueur en mode display -->
+            <div v-if="!displayMode || isAdmin" class="question-badges">
+                <span class="badge-type">{{ currentPhase?.type === 'buzz' ? '🔔 BUZZ' : '📝 QCM' }}</span>
+                <span class="badge-pts">⭐ {{ currentQuestion.points }} PT{{ currentQuestion.points > 1 ? 'S' : ''
+                    }}</span>
+                <span v-if="currentQuestion.time_limit" class="badge-timer">⏱ {{ currentQuestion.time_limit }}s</span>
+            </div>
 
-        <h2 v-if="!displayMode || isAdmin" class="question-text">
-            {{ currentQuestion.text }}
-        </h2>
+            <h2 v-if="!displayMode || isAdmin" class="question-text">
+                {{ currentQuestion.text }}
+            </h2>
 
-        <!-- ── BUZZ ── -->
-        <div v-if="currentPhase?.type === 'buzz'" class="buzz-zone">
-            <div v-if="buzzedPlayer" class="buzzed-display">
-                <div class="buzzed-emoji">🔔</div>
-                <div class="buzzed-name">{{ buzzedPlayer.name }}</div>
-                <div class="buzzed-label">A BUZZÉ !</div>
-                <div v-if="isAdmin" class="award-row">
-                    <button class="btn-correct" @click="$emit('awardPoints', currentQuestion.points)">
-                        ✅ +{{ currentQuestion.points }} pts
-                    </button>
-                    <button class="btn-wrong" @click="$emit('awardPoints', 0)">
-                        ❌ Raté !
-                    </button>
+            <!-- ── BUZZ ── -->
+            <div v-if="currentPhase?.type === 'buzz'" class="buzz-zone">
+                <div v-if="buzzedPlayer" class="buzzed-display">
+                    <div class="buzzed-emoji">🔔</div>
+                    <div class="buzzed-name">{{ buzzedPlayer.name }}</div>
+                    <div class="buzzed-label">A BUZZÉ !</div>
+                    <div v-if="isAdmin" class="award-row">
+                        <button class="btn-correct" @click="$emit('awardPoints', currentQuestion.points)">
+                            ✅ +{{ currentQuestion.points }} pts
+                        </button>
+                        <button class="btn-wrong" @click="$emit('awardPoints', 0)">
+                            ❌ Raté !
+                        </button>
+                    </div>
                 </div>
-            </div>
 
-            <div v-else-if="questionResolved" class="resolved-display">
-                <span class="resolved-big">🎉</span>
-                <span>Bonne réponse trouvée !</span>
-            </div>
-
-            <button v-else-if="!isAdmin" class="buzz-btn" @click="$emit('buzz')">
-                <span class="buzz-ring"></span>
-                <span class="buzz-ring buzz-ring-2"></span>
-                <span class="buzz-label">BUZZ !</span>
-            </button>
-
-            <div v-else class="waiting-buzz">
-                <PulseDot /> En attente d'un buzz...
-            </div>
-        </div>
-
-        <!-- ── QCM ── -->
-        <div v-else-if="currentPhase?.type === 'all_answer'" class="qcm-zone">
-
-            <!-- Résultat joueur -->
-            <div v-if="!isAdmin && answerResult !== null" class="result-display">
-                <div v-if="answerResult.isCorrect" class="result-correct">
-                    <img :src="`${baseUrl}images/heureuse.png`" class="character-img" alt="" />
-                    <span class="result-text">Bonne réponse !</span>
-                    <span class="result-pts">+{{ answerResult.points }} pts</span>
+                <div v-else-if="questionResolved" class="resolved-display">
+                    <span class="resolved-big">🎉</span>
+                    <span v-if="isAdmin">Bonne réponse trouvée !</span>
+                    <template v-else>
+                        <div v-if="lastBuzzedPlayerId === currentPlayerId" class="result-correct">
+                            <img :src="`${baseUrl}images/heureuse.png`" class="character-img" alt="" />
+                            <span class="result-text">{{ buzzLostMessage }}</span>
+                        </div>
+                        <div v-else class="result-wrong">
+                            <img :src="`${baseUrl}images/decue.png`" class="character-img" alt="" />
+                            <span class="result-text">{{ buzzLostMessage }}</span>
+                        </div>
+                    </template>
                 </div>
-                <div v-else class="result-wrong">
-                    <img :src="`${baseUrl}images/decue.png`" class="character-img" alt="" />
-                    <span class="result-text">Pas cette fois !</span>
-                </div>
-            </div>
 
-            <!-- Options joueur -->
-            <div v-else-if="!isAdmin" class="options-grid" :class="{ 'options-grid-display': displayMode }">
-                <button v-for="(option, i) in currentQuestion.options" :key="option.id" class="option-btn"
-                    :class="{ selected: selectedAnswer === option.text, 'option-btn-large': displayMode }"
-                    :disabled="hasAnswered" @click="$emit('selectOption', option.text)">
-                    <span class="option-letter">{{ letters[i as number] }}</span>
-                    <span v-if="!displayMode" class="option-text">{{ option.text }}</span>
+                <button v-else-if="!isAdmin" class="buzz-btn" @click="$emit('buzz')">
+                    <span class="buzz-ring"></span>
+                    <span class="buzz-ring buzz-ring-2"></span>
+                    <span class="buzz-label">BUZZ !</span>
                 </button>
-                <div v-if="hasAnswered" class="answered-msg">
-                    <span class="pulse-dot"></span> Réponse envoyée — en attente des autres...
+
+                <div v-else class="waiting-buzz">
+                    <PulseDot /> En attente d'un buzz...
                 </div>
             </div>
 
-            <!-- Vue admin -->
-            <div v-if="isAdmin" class="admin-answers">
-                <div class="admin-answers-header">
-                    <span>Réponses reçues</span>
-                    <span class="answers-counter">{{ answers.length }} / {{ players.length }}</span>
+            <!-- ── QCM ── -->
+            <div v-else-if="currentPhase?.type === 'all_answer'" class="qcm-zone">
+
+                <!-- Résultat joueur -->
+                <div v-if="!isAdmin && answerResult !== null" class="result-display">
+                    <div v-if="answerResult.isCorrect" class="result-correct">
+                        <img :src="`${baseUrl}images/heureuse.png`" class="character-img" alt="" />
+                        <span class="result-text">{{ resultMessage }}</span>
+                        <span class="result-pts">+{{ answerResult.points }} points</span>
+                    </div>
+                    <div v-else class="result-wrong">
+                        <img :src="`${baseUrl}images/decue.png`" class="character-img" alt="" />
+                        <span class="result-text">{{ resultMessage }}</span>
+                    </div>
                 </div>
 
-                <div v-if="resultsRevealed && correctAnswer" class="correct-answer-banner">
-                    ✅ Bonne réponse : <strong>{{ correctAnswer }}</strong>
+                <!-- Options joueur -->
+                <div v-else-if="!isAdmin" class="options-grid" :class="{ 'options-grid-display': displayMode }">
+                    <button v-for="(option, i) in currentQuestion.options" :key="option.id" class="option-btn"
+                        :class="{ selected: selectedAnswer === option.text, 'option-btn-large': displayMode }"
+                        :disabled="hasAnswered" @click="$emit('selectOption', option.text)">
+                        <span class="option-letter">{{ letters[i as number] }}</span>
+                        <span v-if="!displayMode" class="option-text">{{ option.text }}</span>
+                    </button>
+                    <div v-if="hasAnswered" class="answered-msg">
+                        <span class="pulse-dot"></span> Réponse envoyée — en attente des autres...
+                    </div>
                 </div>
 
-                <div v-for="ans in answers" :key="ans.playerId" class="admin-answer-row" :class="{
-                    'row-correct': resultsRevealed && ans.answer?.toLowerCase().trim() === correctAnswer?.toLowerCase().trim(),
-                    'row-wrong': resultsRevealed && ans.answer?.toLowerCase().trim() !== correctAnswer?.toLowerCase().trim()
-                }">
-                    <span class="ans-player">{{ getPlayerName(ans.playerId) }}</span>
-                    <span class="ans-value">{{ ans.answer }}</span>
+                <!-- Vue admin -->
+                <div v-if="isAdmin" class="admin-answers">
+                    <div class="admin-answers-header">
+                        <span>Réponses reçues</span>
+                        <span class="answers-counter">{{ answers.length }} / {{ players.length }}</span>
+                    </div>
+
+                    <div v-if="resultsRevealed && correctAnswer" class="correct-answer-banner">
+                        ✅ Bonne réponse : <strong>{{ correctAnswer }}</strong>
+                    </div>
+
+                    <div v-for="ans in answers" :key="ans.playerId" class="admin-answer-row" :class="{
+                        'row-correct': resultsRevealed && ans.answer?.toLowerCase().trim() === correctAnswer?.toLowerCase().trim(),
+                        'row-wrong': resultsRevealed && ans.answer?.toLowerCase().trim() !== correctAnswer?.toLowerCase().trim()
+                    }">
+                        <span class="ans-player">{{ getPlayerName(ans.playerId) }}</span>
+                        <span class="ans-value">{{ ans.answer }}</span>
+                    </div>
+
+                    <p v-if="answers.length === 0" class="waiting-text">En attente des réponses...</p>
+
+                    <button v-if="!resultsRevealed" class="btn-reveal" :disabled="answers.length === 0"
+                        @click="$emit('revealResults')">
+                        🎯 Révéler les résultats
+                    </button>
                 </div>
-
-                <p v-if="answers.length === 0" class="waiting-text">En attente des réponses...</p>
-
-                <button v-if="!resultsRevealed" class="btn-reveal" :disabled="answers.length === 0"
-                    @click="$emit('revealResults')">
-                    🎯 Révéler les résultats
-                </button>
             </div>
-        </div>
         </template>
     </div>
 </template>
 
 <script setup lang="ts">
+import { ref, watch } from 'vue'
 import PulseDot from '../../../components/common/PulseDot.vue'
 import ScoreBoard from '../../../components/common/ScoreBoard.vue'
+import { getRandomBuzzWonMessage, getRandomMessage } from '../../../utils/message'
 
 const baseUrl = import.meta.env.BASE_URL
 const letters = ['A', 'B', 'C', 'D']
+const resultMessage = ref('')
+const buzzLostMessage = ref('')
+const lastBuzzedPlayerId = ref<number | null>(null)
 
 const props = defineProps<{
     currentQuestion: any
@@ -129,6 +145,8 @@ const props = defineProps<{
     selectedAnswer: string
     hasAnswered: boolean
     showScores: boolean
+    currentPlayerId: number | null
+    lastBuzzedPlayerId: number | null
 }>()
 
 defineEmits<{
@@ -141,6 +159,31 @@ defineEmits<{
 function getPlayerName(playerId: number) {
     return props.players.find(p => p.id === playerId)?.name || 'Inconnu'
 }
+
+watch(() => props.buzzedPlayer, (val) => {
+    if (val !== null) {
+        lastBuzzedPlayerId.value = val.id
+    }
+})
+
+watch(() => props.questionResolved, (val) => {
+    if (val && !props.isAdmin) {
+        const iWasBuzzed = props.lastBuzzedPlayerId === props.currentPlayerId
+        buzzLostMessage.value = iWasBuzzed
+            ? getRandomMessage(true)
+            : getRandomBuzzWonMessage()
+    } else {
+        buzzLostMessage.value = ''
+    }
+})
+
+watch(() => props.answerResult, (val) => {
+    if (val !== null) {
+        resultMessage.value = getRandomMessage(val.isCorrect)
+    } else {
+        resultMessage.value = ''
+    }
+})
 </script>
 
 <style scoped>
@@ -223,13 +266,15 @@ function getPlayerName(playerId: number) {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     padding: 8px 0;
+    min-height: 300px;
 }
 
 .buzz-btn {
     position: relative;
-    width: 180px;
-    height: 180px;
+    width: 260px;
+    height: 260px;
     border-radius: 50%;
     background: linear-gradient(135deg, #ef4444, #f97316);
     border: none;
@@ -247,14 +292,14 @@ function getPlayerName(playerId: number) {
 
 .buzz-ring {
     position: absolute;
-    inset: -10px;
+    inset: -16px;
     border-radius: 50%;
     border: 3px solid rgba(239, 68, 68, 0.3);
     animation: ring 2s infinite;
 }
 
 .buzz-ring-2 {
-    inset: -20px;
+    inset: -32px;
     border-color: rgba(239, 68, 68, 0.15);
     animation-delay: 0.4s;
 }
@@ -273,7 +318,7 @@ function getPlayerName(playerId: number) {
 
 .buzz-label {
     font-family: 'Righteous', sans-serif;
-    font-size: 36px;
+    font-size: 52px;
     letter-spacing: 3px;
     color: white;
     position: relative;
@@ -360,15 +405,10 @@ function getPlayerName(playerId: number) {
 
 .resolved-display {
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 12px;
-    font-size: 18px;
-    font-weight: 700;
-    color: #16a34a;
-    padding: 16px 20px;
-    background: #f0fdf4;
-    border: 2px solid #bbf7d0;
-    border-radius: 14px;
+    width: 100%;
 }
 
 .resolved-big {
@@ -526,8 +566,8 @@ function getPlayerName(playerId: number) {
 }
 
 .character-img {
-    width: 140px;
-    height: 140px;
+    width: 300px;
+    height: 300px;
     object-fit: contain;
     animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
